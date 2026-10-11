@@ -255,17 +255,17 @@ export default function Academy() {
     setActiveModal('lesson');
 
     const { data: questions } = await supabase
-      .from('academy_quiz_questions')
+      .from('academy_quizzes')
       .select('*')
       .eq('lesson_id', lesson.id)
-      .order('display_order', { ascending: true });
+      .order('sort_order', { ascending: true });
 
     if (questions && questions.length > 0) {
       setQuizQuestions(questions.map(q => ({
         id: q.id,
-        question_text: q.question_text,
+        question_text: q.question,
         options: q.options as string[],
-        correct_answer_index: q.correct_answer_index,
+        correct_answer_index: typeof q.correct_answer === 'number' ? q.correct_answer : 0,
         explanation: q.explanation || ''
       })));
     }

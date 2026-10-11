@@ -226,7 +226,7 @@ export function useAcademyTracks() {
         .from('academy_tracks')
         .select('*, academy_lessons(count)')
         .eq('is_published', true)
-        .order('display_order');
+        .order('sort_order');
 
       if (error) throw error;
       return data as AcademyTrack[];
@@ -251,14 +251,19 @@ export function useAcademyTrack(trackId?: string, userId?: string) {
           .select('*')
           .eq('track_id', trackId)
           .eq('is_published', true)
-          .order('display_order'),
+          .order('sort_order'),
         userId
           ? supabase
-              .from('user_course_progress')
+              .from('academy_progress')
               .select('*')
               .eq('user_id', userId)
-              .eq('course_id', trackId)
-              .maybeSingle()
+              .in('lesson_id', (
+                await supabase
+                  .from('academy_lessons')
+                  .select('id')
+                  .eq('track_id', trackId)
+                ).data?.map(l => l.id) || []
+              )
           : Promise.resolve({ data: null, error: null })
       ]);
 
@@ -327,7 +332,7 @@ export function useUpgradeMiner() {
     }) => {
       const { data, error } = await supabase
         .from('nft_miners')
-        .update({ [upgradeType === 'hashrate' ? 'hashrate_th' : upgradeType === 'efficiency' ? 'efficiency_w_per_th' : 'power_level']: newValue })
+        .update({ [upgradeType === 'hashrate' ? 'hashrate' : upgradeType === 'efficiency' ? 'efficiency' : 'power_level']: newValue })
         .eq('id', minerId)
         .select()
         .single();
@@ -381,14 +386,10 @@ export function useServiceButton(userId?: string) {
       if (!userId) throw new Error('User ID required');
 
       const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          service_button_last_pressed: new Date().toISOString(),
-          service_button_presses: supabase.rpc('increment')
-        })
-        .eq('id', userId)
-        .select()
-        .single();
+        .rpc('press_service_button', {
+          p_user_id: userId,
+          p_reward_amount: rewardAmount
+        });
 
       if (error) throw error;
 

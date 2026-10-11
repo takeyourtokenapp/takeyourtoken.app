@@ -57,11 +57,11 @@ function AdminContractsContent() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, is_admin')
-        .eq('user_id', userData.user.id)
-        .single();
+        .select('is_admin')
+        .eq('id', userData.user.id)
+        .maybeSingle();
 
-      setIsAdmin(profile?.is_admin === true || profile?.role === 'admin');
+      setIsAdmin(profile?.is_admin === true);
     } catch (err) {
       console.error('Error checking admin access:', err);
       setIsAdmin(false);
@@ -123,10 +123,10 @@ function AdminContractsContent() {
 
   const loadBurnData = async () => {
     try {
-      // Get pending burns
+      // Get pending burns — burn_events (not token_burns)
       const { data: burns } = await supabase
-        .from('token_burns')
-        .select('amount_tyt, status, created_at')
+        .from('burn_events')
+        .select('amount_tyt, status, burned_at')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -135,17 +135,17 @@ function AdminContractsContent() {
         setPendingBurn(total);
       }
 
-      // Get last burn execution
+      // Get last burn execution — burned_at (not executed_at)
       const { data: lastBurn } = await supabase
-        .from('token_burns')
-        .select('executed_at')
-        .eq('status', 'executed')
-        .order('executed_at', { ascending: false })
+        .from('burn_events')
+        .select('burned_at')
+        .eq('status', 'completed')
+        .order('burned_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (lastBurn?.executed_at) {
-        setLastBurnDate(new Date(lastBurn.executed_at));
+      if (lastBurn?.burned_at) {
+        setLastBurnDate(new Date(lastBurn.burned_at));
       }
     } catch (err) {
       console.error('Error loading burn data:', err);
@@ -226,18 +226,17 @@ function AdminContractsContent() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', userData.user.id)
-        .single();
+        .eq('id', userData.user.id)
+        .maybeSingle();
 
       if (!profile) return;
 
-      // Update pending burns to executed
+      // Update pending burns to completed — burned_at (not executed_at)
       await supabase
-        .from('token_burns')
+        .from('burn_events')
         .update({
-          status: 'executed',
-          executed_at: new Date().toISOString(),
-          executed_by: profile.id,
+          status: 'completed',
+          burned_at: new Date().toISOString(),
         })
         .eq('status', 'pending');
 

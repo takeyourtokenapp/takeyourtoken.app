@@ -56,27 +56,27 @@ export function MaintenancePaymentFlow({
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user?.id) return;
 
-      // Get user's profile
+      // Get user's profile (profiles.id IS the auth uid)
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, vip_level')
-        .eq('user_id', userData.user.id)
-        .single();
+        .eq('id', userData.user.id)
+        .maybeSingle();
 
       if (!profile) return;
 
-      // Get wallet balances
+      // Get wallet balances (custodial_wallets uses 'currency' not 'asset')
       const { data: wallets } = await supabase
         .from('custodial_wallets')
-        .select('asset, balance')
+        .select('currency, balance')
         .eq('user_id', profile.id)
-        .in('asset', ['TYT', 'USDT', 'BTC']);
+        .in('currency', ['TYT', 'USDT', 'BTC']);
 
       if (wallets) {
         const newBalances: UserBalances = { TYT: 0, USDT: 0, BTC: 0 };
         wallets.forEach(w => {
-          if (w.asset === 'TYT' || w.asset === 'USDT' || w.asset === 'BTC') {
-            newBalances[w.asset] = parseFloat(w.balance);
+          if (w.currency === 'TYT' || w.currency === 'USDT' || w.currency === 'BTC') {
+            newBalances[w.currency] = parseFloat(w.balance);
           }
         });
         setBalances(newBalances);
@@ -102,15 +102,17 @@ export function MaintenancePaymentFlow({
         setVipDiscount(vipTier.maintenance_discount_percent || 0);
       }
 
-      // Check service button status (daily -3%)
+      // Check service button status (daily -3%) — service_button_activations
       const { data: serviceButton } = await supabase
-        .from('game_wars_service_buttons')
-        .select('last_pressed_at')
+        .from('service_button_activations')
+        .select('activated_at, expires_at')
         .eq('user_id', profile.id)
-        .single();
+        .order('activated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (serviceButton?.last_pressed_at) {
-        const lastPressed = new Date(serviceButton.last_pressed_at);
+      if (serviceButton?.activated_at) {
+        const lastPressed = new Date(serviceButton.activated_at);
         const today = new Date();
         if (lastPressed.toDateString() === today.toDateString()) {
           setServiceButtonDiscount(3);
@@ -189,8 +191,8 @@ export function MaintenancePaymentFlow({
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', userData.user.id)
-        .single();
+        .eq('id', userData.user.id)
+        .maybeSingle();
 
       if (!profile) throw new Error('Profile not found');
 
@@ -226,14 +228,14 @@ export function MaintenancePaymentFlow({
 
       if (deductError) throw deductError;
 
-      // Record transaction
+      // Record transaction — wallet_transactions uses 'currency' not 'asset'
       const { error: txError } = await supabase
         .from('wallet_transactions')
         .insert({
           user_id: profile.id,
           type: 'maintenance_payment',
-          asset: selectedCurrency,
           amount: `-${option.amount}`,
+          currency: selectedCurrency,
           status: 'completed',
           metadata: {
             miner_id: minerId,
@@ -246,11 +248,11 @@ export function MaintenancePaymentFlow({
 
       if (txError) throw txError;
 
-      // If TYT payment, record burn
+      // If TYT payment, record burn — burn_events (not token_burns)
       if (selectedCurrency === 'TYT' && option.burnAmount) {
-        await supabase.from('token_burns').insert({
-          amount_tyt: option.burnAmount,
+        await supabase.from('burn_events').insert({
           burn_type: 'maintenance_payment',
+          amount_tyt: option.burnAmount,
           status: 'pending',
           metadata: {
             miner_id: minerId,

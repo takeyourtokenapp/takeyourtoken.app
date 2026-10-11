@@ -49,8 +49,8 @@ export default function Governance() {
           .select('proposal_id')
           .eq('user_id', user.id),
         supabase
-          .from('vetyt_locks')
-          .select('locked_amount')
+          .from('ve_tyt_locks')
+          .select('tyt_amount, voting_power')
           .eq('user_id', user.id)
           .maybeSingle()
       ]);
@@ -79,7 +79,7 @@ export default function Governance() {
         totalProposals: proposalsData.length,
         activeProposals: proposalsData.filter(p => p.status === 'active').length,
         totalVoters: uniqueVoterCount,
-        userVotingPower: userPowerRes.data?.locked_amount || 0
+        userVotingPower: userPowerRes.data?.voting_power || userPowerRes.data?.tyt_amount || 0
       });
     } catch (err) {
       console.error('Error loading governance:', err);

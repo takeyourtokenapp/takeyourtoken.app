@@ -2,15 +2,23 @@ export interface Profile {
   id: string;
   email: string;
   username?: string;
-  kyc_status: 'pending' | 'approved' | 'rejected';
-  kyc_level: number;
+  full_name?: string;
+  kyc_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
+  kyc_level?: number;
+  kyc_submitted_at?: string;
+  kyc_document_url?: string;
+  two_fa_enabled: boolean;
+  referral_code: string;
+  referred_by?: string;
   vip_level: number;
   total_hashrate: number;
-  rank_score: number;
-  rank: 'worker' | 'academic' | 'diplomat' | 'peacekeeper' | 'warrior';
+  rank_score?: number;
+  rank?: 'worker' | 'academic' | 'diplomat' | 'peacekeeper' | 'warrior';
   avatar_id?: string;
-  referred_by?: string;
-  referral_code: string;
+  is_admin?: boolean;
+  service_button_last_pressed?: string;
+  service_button_presses?: number;
+  total_spent?: number;
   created_at: string;
   updated_at: string;
 }
@@ -208,34 +216,11 @@ export interface UserProfile {
   access_level: 'restricted' | 'standard' | 'premium' | 'vip';
   reward_points: number;
   total_trading_volume: number;
-  service_button_last_pressed?: string;
-  service_button_presses?: number;
-  total_spent?: number;
   registration_date: string;
   kyc_submitted_at?: string;
   kyc_approved_at?: string;
   last_active: string;
   metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Profile {
-  id: string;
-  username?: string;
-  email: string;
-  full_name?: string;
-  kyc_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
-  kyc_submitted_at?: string;
-  kyc_document_url?: string;
-  two_fa_enabled: boolean;
-  referral_code: string;
-  referred_by?: string;
-  vip_level: number;
-  total_hashrate: number;
-  service_button_last_pressed?: string;
-  service_button_presses?: number;
-  total_spent?: number;
   created_at: string;
   updated_at: string;
 }

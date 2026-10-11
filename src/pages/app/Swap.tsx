@@ -53,54 +53,50 @@ export default function Swap() {
     try {
       setLoading(true);
 
-      const [tokensRes, swapsRes] = await Promise.all([
-        supabase
-          .from('supported_tokens')
-          .select('symbol, name, contract_address, decimals')
-          .eq('is_active', true),
-        supabase
-          .from('swap_history')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5)
-      ]);
-
-      if (tokensRes.error) throw tokensRes.error;
-
-      const walletRes = await supabase
-        .from('custodial_wallets')
-        .select('balance_btc, balance_tyt, balance_usdt')
+      const swapsRes = await supabase
+        .from('token_swaps')
+        .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(5);
 
       const tokenList: Token[] = [
+        { symbol: 'TYT', name: 'TakeYourToken', balance: 0 },
+        { symbol: 'BTC', name: 'Bitcoin', balance: 0 },
+        { symbol: 'USDT', name: 'Tether USD', balance: 0 }
+      ];
+
+      // custodial_wallets uses 'currency' and 'balance', not balance_btc/balance_tyt/balance_usdt
+      const walletRes = await supabase
+        .from('custodial_wallets')
+        .select('currency, balance')
+        .eq('user_id', user.id);
+
+      const walletMap: Record<string, number> = {};
+      (walletRes.data || []).forEach(w => {
+        walletMap[w.currency] = parseFloat(w.balance || '0');
+      });
+
+      const walletTokenList: Token[] = [
         {
           symbol: 'TYT',
           name: 'TakeYourToken',
-          balance: walletRes.data?.balance_tyt || 0
+          balance: walletMap['TYT'] || 0
         },
         {
           symbol: 'BTC',
           name: 'Bitcoin',
-          balance: walletRes.data?.balance_btc || 0
+          balance: walletMap['BTC'] || 0
         },
         {
           symbol: 'USDT',
           name: 'Tether USD',
-          balance: walletRes.data?.balance_usdt || 0
-        },
-        ...(tokensRes.data || []).map(t => ({
-          symbol: t.symbol,
-          name: t.name,
-          balance: 0,
-          contract_address: t.contract_address,
-          decimals: t.decimals
-        }))
+          balance: walletMap['USDT'] || 0
+        }
       ];
 
       const uniqueTokens = Array.from(
-        new Map(tokenList.map(t => [t.symbol, t])).values()
+        new Map(walletTokenList.map(t => [t.symbol, t])).values()
       );
 
       setTokens(uniqueTokens);
@@ -168,17 +164,17 @@ export default function Swap() {
       setSwapping(true);
 
       const { error } = await supabase
-        .from('swap_history')
+        .from('token_swaps')
         .insert({
           user_id: user.id,
           from_token: fromToken.symbol,
           to_token: toToken.symbol,
           from_amount: amount,
           to_amount: parseFloat(toAmount),
-          exchange_rate: parseFloat(toAmount) / amount,
-          fee_amount: amount * 0.003,
-          slippage_tolerance: slippage,
-          status: 'completed'
+          status: 'completed',
+          blockchain: 'internal',
+          swap_provider: 'tyt-internal',
+          price_impact: parseFloat(((parseFloat(toAmount) / amount - 1) * 100).toFixed(2)),
         });
 
       if (error) throw error;

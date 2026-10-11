@@ -32,7 +32,7 @@ export default function ReinvestSettingsModal({ isOpen, onClose }: ReinvestSetti
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('user_settings')
+        .from('user_reinvest_settings')
         .select('auto_reinvest_enabled, reinvest_percentage, min_balance_to_reinvest, reinvest_frequency_days')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -60,7 +60,7 @@ export default function ReinvestSettingsModal({ isOpen, onClose }: ReinvestSetti
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('user_settings')
+        .from('user_reinvest_settings')
         .upsert({
           user_id: user.id,
           auto_reinvest_enabled: settings.auto_reinvest_enabled,
