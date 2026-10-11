@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Take Your Token (TYT) — Digital Miners с ежедневными BTC-начислениями</title>
@@ -14,19 +15,64 @@
     <meta property="og:description" content="Покупай Digital Miner (NFT), получай ежедневные BTC-начисления, плати обслуживание токеном TYT со скидкой, торгуй на маркетплейсе." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://takeyourtoken.app" />
-    <meta property="og:image" content="https://takeyourtoken.app/og-image.png" />
-    <meta property="og:image:alt" content="Интерфейс TYT с панелью майнеров и графиком начислений" />
+    <meta property="og:image" content="https://tyt.foundation/aoi/hero-welcome.png" />
+    <meta property="og:image:alt" content="TakeYourToken — Web3 Mining Platform supporting children's brain cancer research" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="TYT — Digital Miners & Marketplace" />
     <meta name="twitter:description" content="Покупай Digital Miner (NFT), получай ежедневные BTC-начисления, плати обслуживание токеном TYT со скидкой, торгуй на маркетплейсе." />
-    <meta name="twitter:image" content="https://takeyourtoken.app/og-image.png" />
+    <meta name="twitter:image" content="https://tyt.foundation/aoi/hero-welcome.png" />
 
     <link rel="canonical" href="https://takeyourtoken.app" />
-  <script type="module" crossorigin src="/assets/index-Cb_Vey4A.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-B1Nz53t1.css">
+  <script type="module" crossorigin src="/assets/index-Sk22cXqt.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BQWO8VOk.css">
 </head>
   <body>
+    <script>
+      // Apply theme IMMEDIATELY before React loads to prevent flash
+      (function() {
+        try {
+          const stored = localStorage.getItem('tyt-theme-preference');
+          const theme = stored || 'auto';
+
+          function getSystemTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+              return 'dark';
+            }
+            return 'light';
+          }
+
+          function getTimeTheme() {
+            const hour = new Date().getHours();
+            return (hour >= 6 && hour < 18) ? 'light' : 'dark';
+          }
+
+          let resolvedTheme = theme;
+          if (theme === 'auto') {
+            resolvedTheme = getTimeTheme();
+          }
+
+          const root = document.documentElement;
+          const body = document.body;
+
+          if (resolvedTheme === 'dark') {
+            root.classList.add('dark');
+            body.classList.add('dark');
+            root.style.colorScheme = 'dark';
+            root.setAttribute('data-theme', 'dark');
+          } else {
+            root.classList.remove('dark');
+            body.classList.remove('dark');
+            root.style.colorScheme = 'light';
+            root.setAttribute('data-theme', 'light');
+          }
+
+          console.log('[INIT] Theme applied:', resolvedTheme, '(preference:', theme, ')');
+        } catch (e) {
+          console.error('[INIT] Theme error:', e);
+        }
+      })();
+    </script>
     <div id="root"></div>
   </body>
 </html>
