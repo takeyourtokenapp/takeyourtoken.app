@@ -72,22 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error('Sign in error:', {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-        });
         throw new Error(error.message || 'Failed to sign in');
       }
-    } catch (err) {
-      console.error('Sign in exception:', err);
-      throw err;
+    } catch (error) {
+      if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
+        throw new Error('The TYT sign-in service is currently unavailable. Please try again shortly.');
+      }
+
+      throw error;
     }
   };
 

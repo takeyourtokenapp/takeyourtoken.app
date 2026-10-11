@@ -246,8 +246,7 @@ export const communityService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
+    } catch {
       return [];
     }
   },

@@ -36,8 +36,8 @@ export default function Login() {
       if (err instanceof Error) {
         errorMessage = err.message;
 
-        if (err.message.includes('fetch')) {
-          errorMessage = 'Network error. Check your connection and Supabase configuration.';
+        if (err.message.toLowerCase().includes('fetch') || err.message.includes('sign-in service is currently unavailable')) {
+          errorMessage = 'The TYT sign-in service is currently unavailable. Please try again shortly.';
         } else if (err.message.includes('Invalid login credentials')) {
           errorMessage = 'Invalid email or password';
         } else if (err.message.includes('Email not confirmed') || err.message.includes('email_confirmed_at')) {
