@@ -1,0 +1,112 @@
+academy_certificates: id, token_id, user_id, certificate_type, track_id, quest_id, title, description, issued_at, metadata_uri, image_url, is_soulbound, blockchain_tx_hash, minted_at, created_at
+academy_lessons: id, track_id, slug, title, description, content_mdx, sort_order, difficulty, estimated_minutes, has_quiz, has_calculator, calculator_type, completion_xp, required_lesson_ids, is_published, is_free, created_at, updated_at
+academy_progress: id, user_id, lesson_id, is_completed, completed_at, time_spent_seconds, quiz_score, quiz_passed, xp_earned, created_at, updated_at
+academy_quest_completions: id, user_id, quest_id, status, completed_at, verified_at, xp_claimed, tyt_claimed, verification_data, created_at, updated_at
+academy_quests: id, slug, title, description, quest_type, required_action, required_amount, social_platform, social_action, social_url, required_track_ids, required_quest_ids, min_owl_rank, xp_reward, tyt_reward, icon, color, is_active, is_repeatable, created_at
+academy_quiz_attempts: id, user_id, quiz_id, lesson_id, user_answer, is_correct, attempt_number, points_earned, created_at
+academy_quizzes: id, lesson_id, question, question_type, options, correct_answer, correct_order, explanation, sort_order, points, created_at
+academy_streaks: user_id, current_streak, longest_streak, last_activity, created_at, updated_at
+academy_tracks: id, slug, title, description, sort_order, difficulty, estimated_hours, required_track_ids, min_owl_rank, completion_xp, icon, color, cover_image_url, is_published, is_premium, created_at, updated_at
+access_features: id, feature_code, feature_name, description, required_kyc_tier, required_access_level, required_reward_points, is_active, metadata, created_at, updated_at
+account_balance_verification: id, user_id, account_type, currency, network, stored_balance, computed_balance, discrepancy
+ambassadors: id, user_id, tier, status, purchase_commission_percent, upgrade_commission_percent, marketplace_commission_percent, total_referrals, active_referrals, total_earnings_tyt, custom_code, assigned_at, created_at, updated_at
+avatars: id, token_id, owner_id, name, rarity, image_url, boost_type, boost_value, is_equipped, is_tradeable, acquired_at, created_at
+bitcoin_addresses: id, user_id, address, address_type, script_pubkey, derivation_path, extended_pubkey, is_multisig, multisig_m, multisig_n, multisig_pubkeys, balance_confirmed, balance_unconfirmed, balance_total, utxo_count, is_used, first_used_at, last_used_at, tx_count, label, privacy_level, is_change_address, is_active, is_watched, network, purpose, created_at, updated_at, last_synced_at
+bitcoin_fee_estimates: id, fastest_fee, half_hour_fee, hour_fee, economy_fee, minimum_fee, mempool_size_mb, mempool_tx_count, next_block_fee_min, next_block_fee_max, data_source, valid_until, created_at
+bitcoin_transactions: id, user_id, txid, tx_type, direction, amount_satoshis, fee_satoshis, total_satoshis, from_addresses, to_addresses, user_address, is_confirmed, confirmations, required_confirmations, block_height, block_hash, block_time, size_bytes, virtual_size, weight, version, locktime, fee_rate, fee_priority, is_rbf, replaced_by_txid, replaces_txid, rbf_attempts, is_psbt, psbt_base64, psbt_status, raw_hex, status, created_at, broadcast_at, confirmed_at, updated_at, description, internal_note, external_reference
+bitcoin_utxos: id, user_id, address_id, txid, vout, value_satoshis, script_pubkey, script_type, is_confirmed, confirmations, block_height, block_hash, block_time, is_spent, spent_in_txid, spent_at, is_coinbase, is_rbf, is_locked, locked_until, privacy_score, label, is_dust, estimated_fee_to_spend, created_at, updated_at
+blockchain_deposits: id, user_id, deposit_address_id, network_code, tx_hash, from_address, to_address, asset, amount, amount_usd, confirmations, status, block_number, block_timestamp, wallet_transaction_id, fee_charged, amount_credited, error_message, detected_at, confirmed_at, credited_at
+blockchain_networks: id, network_code, network_name, chain_id, rpc_endpoint, explorer_url, min_confirmations, is_active, supports_tokens, native_symbol, created_at, updated_at
+burn_cycles: id, cycle_number, start_date, end_date, tyt_collected, tyt_burned, maintenance_payments_count, unique_payers_count, burn_tx_hash, burn_block_number, status, scheduled_burn_time, burned_at, report_url, metadata, created_at
+burn_events: id, burn_type, amount_tyt, tx_hash, burn_address, source_ref_type, source_ref_id, report_uri, burned_at, status, metadata, created_at
+burn_mint_distributions: id, burn_event_id, hashrate_providers_amount, ve_lockers_amount, community_treasury_amount, charity_foundation_amount, hashrate_providers_percent, ve_lockers_percent, community_treasury_percent, charity_foundation_percent, created_at
+burn_pool: id, amount_tyt, burn_type, source_ref_type, source_ref_id, status, burn_event_id, created_at
+burn_reports: id, report_date, period_start, period_end, total_burned, burn_by_type, charity_mint_amount, cumulative_total_burned, tx_hashes, report_uri, created_at
+burn_statistics: total_burn_events, total_burned, burned_24h, burned_7d, burned_30d, charity_mint_total
+chain_observer_config: id, network, last_processed_block, is_active, poll_interval_seconds, batch_size, rpc_endpoints, contracts_to_watch, health_status, last_health_check, error_count, metadata, created_at, updated_at
+charity_flows: id, user_id, source_type, source_id, asset, amount, amount_usd, flow_type, transaction_id, created_at
+community_announcements: id, title, message, type, icon, color, is_active, start_date, end_date, target_audience, priority, created_by, created_at, updated_at
+community_leaderboard_cache: id, user_id, username, avatar, owl_rank, total_hashrate, total_rewards, total_xp, rank_hashrate, rank_rewards, rank_xp, badges, updated_at
+community_messages: id, user_id, username, avatar, owl_rank, message, is_system, is_deleted, created_at, updated_at
+community_online_users: id, user_id, last_seen, session_id
+cross_chain_transfers: id, user_id, from_blockchain, to_blockchain, token_symbol, amount, bridge_fee, from_address, to_address, source_tx_hash, destination_tx_hash, bridge_provider, status, created_at, completed_at
+custodial_addresses: id, user_id, blockchain, address, derivation_path, is_active, last_checked_at, created_at
+custodial_balance_snapshots: id, user_id, wallet_id, balance, locked_balance, blockchain, on_chain_balance, last_sync_at, snapshot_date, created_at
+custodial_internal_swaps: id, user_id, from_wallet_id, to_wallet_id, from_asset, to_asset, from_amount, to_amount, exchange_rate, swap_fee, rate_provider, status, created_at
+custodial_wallets: id, user_id, currency, balance, locked_balance, address, is_active, created_at, updated_at, blockchain
+custodial_withdrawals: id, user_id, wallet_id, blockchain, asset, amount, destination_address, fee_total, fee_protocol, fee_foundation, fee_academy, amount_after_fee, tx_hash, status, failure_reason, requested_at, processed_at, completed_at
+daily_rewards: id, user_id, miner_id, reward_date, btc_amount, hashrate_snapshot, efficiency_snapshot, uptime_percent, network_difficulty, btc_price_usd, status, wallet_transaction_id, processed_at, metadata, created_at
+daily_rewards_summary: id, date, total_miners_processed, total_gross_btc, total_net_btc, total_maintenance_collected, total_reinvested, network_hashrate, btc_price, merkle_root, processed_at, created_at
+daily_withdrawal_tracking: id, user_id, tracking_date, total_withdrawn_today, withdrawal_count_today, last_withdrawal_at, created_at, updated_at
+data_centers: id, name, location, country_code, latitude, longitude, kwh_rate, total_capacity_th, used_capacity_th, live_stream_url, is_active, metadata, created_at, updated_at
+discount_tiers: id, name, days_coverage, discount_percent, min_tyt_balance, is_active, display_order, created_at
+fee_audit_log: id, fee_table, fee_key, old_values, new_values, changed_by, change_reason, created_at
+fee_configurations: id, fee_key, fee_name, fee_bps_total, protocol_pct, charity_pct, academy_pct, is_active, created_at, updated_at
+fee_distribution_config: id, fee_type, protocol_share_bps, charity_share_bps, academy_share_bps, burn_share_bps, is_active, effective_from, effective_to, created_at
+fiat_transactions: id, user_id, transaction_type, fiat_currency, fiat_amount, crypto_currency, crypto_amount, blockchain, wallet_address, payment_method, payment_provider, provider_transaction_id, status, created_at, completed_at
+foundation_campaigns: id, slug, title, description, funding_goal_usd, current_raised_usd, start_date, end_date, campaign_type, beneficiary_description, image_url, video_url, status, has_matching, matching_ratio, matching_pool_usd, donor_count, created_at, updated_at
+foundation_donation_receipts: id, donation_id, token_id, user_id, receipt_number, donation_amount_usd, tax_year, metadata_uri, image_url, is_soulbound, blockchain_tx_hash, minted_at, issued_at, created_at
+foundation_donations: id, donor_user_id, donor_wallet_address, is_anonymous, amount, currency, amount_usd, chain, tx_hash, block_number, source, campaign_id, is_tax_deductible, receipt_issued, receipt_number, message, in_memory_of, donated_at, created_at
+foundation_family_support: id, application_number, support_type, requested_amount_usd, approved_amount_usd, status, hospital_verification, social_worker_contact, disbursed_at, disbursement_tx_hash, patient_age_group, diagnosis_category, geographic_region, reviewed_by, reviewed_at, review_notes, applied_at, created_at
+foundation_grant_milestones: id, grant_id, milestone_number, title, description, disbursement_amount_usd, target_date, completed_date, status, deliverable_description, proof_of_completion_url, proof_of_use_tx_hash, reviewed_by, reviewed_at, review_notes, created_at, updated_at
+foundation_grants: id, grant_number, title, description, partner_id, principal_investigator, total_amount_usd, disbursed_amount_usd, remaining_amount_usd, start_date, end_date, status, research_area, target_age_group, tumor_types, milestone_count, completed_milestones, proposal_url, irb_approval_number, expected_outcomes, publications, approved_by, approved_at, created_at, updated_at
+foundation_impact_metrics: id, year, quarter, total_donations_usd, unique_donors_count, grants_awarded, grants_awarded_amount_usd, active_research_projects, families_supported, family_support_amount_usd, publications_count, clinical_trials_initiated, operating_expenses_usd, operating_expense_ratio, total_tx_count, gas_fees_usd, created_at, updated_at
+foundation_research_partners: id, name, partner_type, primary_contact_name, primary_contact_email, country, city, ein_tax_id, registration_number, is_verified, kyc_completed, irb_approval, website_url, description, research_focus, total_grants_received, active_grants_count, created_at, updated_at
+foundation_transparency_reports: id, fiscal_year, title, total_revenue_usd, total_grants_awarded_usd, total_family_support_usd, total_operating_expenses_usd, net_assets_usd, grants_awarded_count, families_supported_count, research_publications_count, unique_donors_count, pdf_url, blockchain_proof_hash, form_990_url, published_at, created_at
+game_boosts: id, user_id, boost_type, boost_name, boost_value, duration_hours, cost_tyt, activated_at, expires_at, is_active, transaction_id, created_at
+game_clan_members: id, clan_id, user_id, rank, hashrate_contribution, battles_participated, points_earned, joined_at, last_active_at
+game_clans: id, name, tag, leader_id, description, image_url, total_members, total_hashrate, total_btc_won, total_tyt_won, global_rank, win_count, loss_count, is_recruiting, min_hashrate_requirement, created_at, updated_at
+game_tournament_participants: id, tournament_id, user_id, clan_id, score, rank, btc_won, tyt_won, registered_at
+game_tournaments: id, name, description, tournament_type, status, prize_pool_btc, prize_pool_tyt, winning_clan_id, winning_user_id, starts_at, ends_at, min_hashrate, entry_fee_tyt, participants_count, created_at, completed_at
+goboxes: id, user_id, rarity, vip_level_achieved, tyt_reward, btc_reward, avatar_id, boost_duration_hours, is_opened, opened_at, created_at
+governance_proposals: id, proposal_number, title, description, proposal_type, proposed_by, start_time, end_time, quorum_required, votes_for, votes_against, unique_voters_count, status, execution_tx_hash, executed_at, metadata, created_at
+governance_votes: id, proposal_id, user_id, voting_power, vote, vote_tx_hash, voted_at, metadata
+kyc_documents: id, user_id, document_type, document_url, status, rejection_reason, uploaded_at, reviewed_at, reviewed_by, metadata, created_at, updated_at
+ledger_entries: id, entry_batch_id, account_id, entry_type, debit, credit, balance_after, currency, ref_type, ref_id, description, metadata, created_at
+lightning_invoices: id, user_id, node_id, payment_hash, payment_request, invoice_type, amount_sats, amount_received_sats, description, description_hash, is_lnurl, lnurl_metadata, lnurl_callback, expires_at, status, paid_at, preimage, fee_sats, routing_fee_sats, route_hints, memo, external_reference, created_at, updated_at
+lightning_nodes: id, user_id, pubkey, alias, node_type, connection_string, api_endpoint, macaroon, is_active, is_online, last_online_at, total_capacity_sats, local_balance_sats, remote_balance_sats, active_channels, pending_channels, closed_channels, uptime_percentage, avg_channel_size_sats, created_at, updated_at
+liquid_assets: id, user_id, asset_id, asset_type, liquid_address, blinding_key, balance, unconfirmed_balance, asset_name, ticker, precision, is_confidential, is_active, created_at, updated_at, last_synced_at
+maintenance_invoices: id, user_id, miner_id, invoice_date, due_date, base_cost_usd, kwh_consumed, kwh_rate, tyt_discount_percent, service_discount_percent, vip_discount_percent, total_discount_percent, final_cost_usd, payment_currency, payment_amount, status, wallet_transaction_id, paid_at, metadata, created_at
+marketplace_listings: id, miner_id, seller_id, listing_type, price_amount, price_currency, min_bid_amount, current_bid_amount, auction_end_at, platform_fee_percent, status, views_count, created_at, updated_at, sold_at
+marketplace_offers: id, listing_id, buyer_id, offer_amount, offer_currency, message, status, expires_at, created_at, updated_at, responded_at
+marketplace_sales: id, listing_id, miner_id, seller_id, buyer_id, sale_amount, sale_currency, platform_fee_amount, seller_net_amount, referrer_id, referrer_commission_amount, completed_at, blockchain_tx_hash, created_at
+miner_upgrade_tiers: level, max_hashrate, upgrade_cost_tyt, upgrade_cost_btc, efficiency_improvement_percent, efficiency_upgrade_cost_tyt, description, created_at
+miner_upgrades: id, miner_id, user_id, upgrade_type, from_value, to_value, cost, cost_currency, transaction_id, created_at
+nft_collections: id, name, symbol, description, contract_address, total_supply, minted_supply, base_hashrate, base_efficiency, base_maintenance_rate, floor_price, floor_price_currency, is_active, image_url, metadata, created_at
+nft_miners: id, token_id, owner_id, collection_id, name, hashrate, efficiency, power_level, maintenance_rate, farm_id, purchase_price, purchase_currency, purchased_at, last_reward_at, last_maintenance_paid_at, total_rewards_btc, total_maintenance_paid, status, is_listed, listed_price, metadata_uri, metadata, created_at, updated_at
+onchain_events: id, network, tx_hash, log_index, block_number, block_timestamp, event_type, contract_address, from_address, to_address, asset, amount, raw_data, status, ledger_batch_id, error_message, retry_count, detected_at, processed_at
+owl_ranks: id, rank_level, name, name_en, min_xp, max_xp, badge_icon, badge_color, perks, description, created_at
+profiles: id, username, email, full_name, kyc_status, kyc_submitted_at, kyc_document_url, two_fa_enabled, referral_code, referred_by, vip_level, total_hashrate, created_at, updated_at, is_admin, service_button_last_pressed, service_button_presses
+protocol_revenue: id, source_type, source_id, asset, amount, amount_usd, transaction_id, created_at
+reconciliation_snapshots: id, snapshot_date, account_id, ledger_balance, computed_balance, discrepancy, is_reconciled, notes, created_at
+referral_earnings: id, referrer_id, referred_user_id, event_type, event_id, base_amount, commission_percent, commission_amount, status, paid_at, created_at
+reward_snapshots: id, snapshot_date, total_active_miners, total_hashrate, btc_network_hashrate, btc_block_reward, btc_price_usd, total_btc_distributed, status, processed_at, metadata, created_at
+service_button_activations: id, user_id, activation_date, discount_percent, activated_at, expires_at, maintenance_saved
+service_button_claims: id, user_id, tyt_amount, vip_level, claim_date, claimed_at
+sol_transfers: id, user_id, from_address, to_address, amount, transfer_type, tx_signature, status, fee, error_message, created_at, confirmed_at
+staking_pools: id, name, blockchain, token_symbol, token_address, apy, min_stake, lock_period_days, total_staked, max_capacity, is_active, description, created_at, updated_at
+staking_rewards: id, user_id, stake_id, amount, claimed_at, tx_hash
+system_balance_summary: currency, account_type, total_balance, account_count
+token_burn_events: id, scheduled_at, collected_amount, burned_amount, charity_mint_amount, burn_tx_hash, mint_tx_hash, status, report_url, executed_at, created_at
+token_swaps: id, user_id, blockchain, from_token, to_token, from_amount, to_amount, wallet_address, tx_hash, swap_provider, price_impact, status, created_at, completed_at
+treasury_reserves: id, currency, balance, locked_balance, total_deposits, total_withdrawals, last_updated_at, metadata
+tyt_token_trades: id, user_id, wallet_address, trade_type, sol_amount, tyt_amount, price_per_token, total_value_usd, tx_signature, status, pump_fun_data, error_message, created_at, confirmed_at
+user_academy_stats: user_id, total_xp, current_rank_level, tracks_completed, lessons_completed, quizzes_passed, quests_completed, certificates_earned, total_study_time_minutes, current_streak_days, longest_streak_days, last_activity_at, created_at, updated_at
+user_achievements: id, user_id, achievement_code, achievement_name, achievement_description, icon, color, earned_at
+user_deposit_addresses: id, user_id, network_code, address, private_key_encrypted, derivation_path, is_verified, last_checked_at, created_at
+user_discounts: id, user_id, tyt_balance_available, tyt_balance_locked, days_covered, tyt_discount_percent, service_button_active, service_button_last_used_at, service_discount_percent, vip_discount_percent, ve_tyt_discount_percent, effective_discount_percent, updated_at
+user_donation_settings: user_id, auto_roundup_enabled, roundup_percentage, preferred_campaign_id, is_anonymous, lifetime_donated_usd, total_donations_count, created_at, updated_at
+user_feature_access: id, user_id, feature_code, granted_at, granted_reason, expires_at, metadata, created_at
+user_profiles: user_id, kyc_status, kyc_tier, access_level, reward_points, total_trading_volume, registration_date, kyc_submitted_at, kyc_approved_at, last_active, metadata, created_at, updated_at
+user_reinvest_settings: user_id, auto_reinvest_enabled, reinvest_percentage, min_balance_to_reinvest, reinvest_frequency_days, created_at, updated_at
+user_stakes: id, user_id, pool_id, amount, wallet_address, start_date, unlock_date, rewards_earned, status, tx_hash, withdrawn_at, created_at
+user_web3_wallets: id, user_id, wallet_address, wallet_type, blockchain, is_primary, last_connected_at, created_at, metadata
+ve_tyt_locks: id, user_id, tyt_amount, lock_duration_weeks, locked_at, unlock_at, voting_power, weekly_rewards_claimed, total_rewards_earned, status, lock_tx_hash, unlock_tx_hash, metadata, created_at, updated_at
+vip_tiers: level, name, min_hashrate, min_voting_power, requirement_type, maintenance_discount_percent, marketplace_fee_discount_percent, priority_support, early_access, exclusive_avatars, custom_badge, description, created_at
+wallet_accounts: id, user_id, account_type, currency, network, balance, locked_balance, pending_balance, is_active, metadata, created_at, updated_at
+wallet_transactions: id, wallet_id, user_id, type, amount, currency, status, tx_hash, from_address, to_address, fee, metadata, created_at, completed_at
+weekly_distributions: id, burn_cycle_id, distribution_date, total_tyt_minted, hashrate_providers_share, ve_lockers_share, treasury_share, community_share, status, distributed_at, metadata, created_at
+withdrawal_limits: id, kyc_tier, min_withdrawal_amount, max_withdrawal_amount, daily_limit, weekly_limit, monthly_limit, requires_admin_approval, description, is_active, created_at, updated_at
+withdrawal_requests: id, user_id, asset, amount, destination_address, network_code, status, kyc_tier, requires_approval, admin_notes, rejection_reason, tx_hash, fee_amount, net_amount, requested_at, reviewed_at, reviewed_by, completed_at, metadata, created_at, updated_at
+
+(exit 0, 72ms)

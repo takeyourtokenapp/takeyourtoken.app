@@ -62,90 +62,91 @@ export function getTierBonus(tier: number, vipBonusPercent: number = 0): number 
 export async function getUserReferralStats(userId: string): Promise<ReferralStats> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('referral_code, referral_count')
+    .select('referral_code')
     .eq('id', userId)
     .maybeSingle();
 
   const referralCode = profile?.referral_code || generateReferralCode(userId);
 
-  const { data: referrals } = await supabase
-    .from('referrals')
-    .select('*')
+  const { data: referredUsers } = await supabase
+    .from('profiles')
+    .select('id, created_at')
+    .eq('referred_by', userId);
+
+  const totalReferrals = referredUsers?.length || 0;
+
+  const { data: earnings } = await supabase
+    .from('referral_earnings')
+    .select('commission_amount, status, created_at')
     .eq('referrer_id', userId);
 
-  const activeReferrals = (referrals || []).filter(r => r.status === 'active').length;
-  const pendingReferrals = (referrals || []).filter(r => r.status === 'pending').length;
+  const totalEarnings = (earnings || [])
+    .filter(e => e.status === 'paid')
+    .reduce((sum, e) => sum + parseFloat(e.commission_amount || '0'), 0);
 
-  const { data: commissions } = await supabase
-    .from('referral_commissions')
-    .select('amount, status, created_at')
-    .eq('referrer_id', userId);
-
-  const totalEarnings = (commissions || [])
-    .filter(c => c.status === 'paid')
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const pendingEarnings = (commissions || [])
-    .filter(c => c.status === 'pending')
-    .reduce((sum, c) => sum + c.amount, 0);
+  const pendingEarnings = (earnings || [])
+    .filter(e => e.status === 'pending')
+    .reduce((sum, e) => sum + parseFloat(e.commission_amount || '0'), 0);
 
   const monthAgo = new Date();
   monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-  const monthlyEarnings = (commissions || [])
-    .filter(c => c.status === 'paid' && new Date(c.created_at) >= monthAgo)
-    .reduce((sum, c) => sum + c.amount, 0);
+  const monthlyEarnings = (earnings || [])
+    .filter(e => e.status === 'paid' && new Date(e.created_at) >= monthAgo)
+    .reduce((sum, e) => sum + parseFloat(e.commission_amount || '0'), 0);
 
-  const { count: clickCount } = await supabase
-    .from('referral_clicks')
-    .select('id', { count: 'exact' })
-    .eq('referral_code', referralCode);
-
-  const conversionRate = clickCount && clickCount > 0
-    ? ((referrals?.length || 0) / clickCount) * 100
-    : 0;
+  const activeReferrals = (earnings || []).filter(e => e.status === 'paid').length;
+  const pendingReferrals = totalReferrals - activeReferrals;
 
   return {
-    totalReferrals: referrals?.length || 0,
-    activeReferrals,
-    pendingReferrals,
+    totalReferrals,
+    activeReferrals: Math.max(0, activeReferrals),
+    pendingReferrals: Math.max(0, pendingReferrals),
     totalEarnings,
     pendingEarnings,
     monthlyEarnings,
-    conversionRate,
+    conversionRate: totalReferrals > 0 ? (activeReferrals / totalReferrals) * 100 : 0,
     referralCode,
     referralLink: `https://takeyourtoken.com/signup?ref=${referralCode}`
   };
 }
 
 export async function getUserReferrals(userId: string): Promise<Referral[]> {
-  const { data, error } = await supabase
-    .from('referrals')
-    .select(`
-      id,
-      referred_id,
-      status,
-      tier,
-      commission_earned,
-      created_at,
-      profiles:referred_id(email, display_name, total_spent)
-    `)
-    .eq('referrer_id', userId)
+  const { data: referredUsers, error } = await supabase
+    .from('profiles')
+    .select('id, email, username, full_name, created_at')
+    .eq('referred_by', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  return (data || []).map(r => ({
-    id: r.id,
-    referredUserId: r.referred_id,
-    referredEmail: r.profiles?.email || 'Unknown',
-    referredName: r.profiles?.display_name || 'Anonymous',
-    status: r.status,
-    totalSpent: r.profiles?.total_spent || 0,
-    commissionEarned: r.commission_earned || 0,
-    joinedAt: r.created_at,
-    tier: r.tier
-  }));
+  const { data: earnings } = await supabase
+    .from('referral_earnings')
+    .select('referred_user_id, commission_amount, status, event_type')
+    .eq('referrer_id', userId);
+
+  const earningsByUser = new Map<string, { total: number; status: string }>();
+  for (const e of earnings || []) {
+    const existing = earningsByUser.get(e.referred_user_id) || { total: 0, status: 'pending' };
+    existing.total += parseFloat(e.commission_amount || '0');
+    if (e.status === 'paid') existing.status = 'active';
+    earningsByUser.set(e.referred_user_id, existing);
+  }
+
+  return (referredUsers || []).map(u => {
+    const earning = earningsByUser.get(u.id);
+    return {
+      id: u.id,
+      referredUserId: u.id,
+      referredEmail: u.email || 'Unknown',
+      referredName: u.full_name || u.username || 'Anonymous',
+      status: (earning?.status as 'pending' | 'active') || 'pending',
+      totalSpent: 0,
+      commissionEarned: earning?.total || 0,
+      joinedAt: u.created_at,
+      tier: 1
+    };
+  });
 }
 
 export async function getCommissionHistory(
@@ -159,19 +160,15 @@ export async function getCommissionHistory(
   const { status, limit = 50, offset = 0 } = options;
 
   let query = supabase
-    .from('referral_commissions')
+    .from('referral_earnings')
     .select(`
       id,
-      referral_id,
-      amount,
-      commission_type,
+      referred_user_id,
+      commission_amount,
+      event_type,
       status,
       created_at,
-      paid_at,
-      referrals!inner(
-        referred_id,
-        profiles:referred_id(email)
-      )
+      paid_at
     `)
     .eq('referrer_id', userId)
     .order('created_at', { ascending: false })
@@ -184,24 +181,32 @@ export async function getCommissionHistory(
   const { data, error } = await query;
   if (error) throw error;
 
+  const userIds = [...new Set((data || []).map(d => d.referred_user_id))];
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, email')
+    .in('id', userIds);
+
+  const emailMap = new Map<string, string>();
+  for (const p of profiles || []) {
+    emailMap.set(p.id, p.email || 'Unknown');
+  }
+
   return (data || []).map(c => ({
     id: c.id,
-    referralId: c.referral_id,
-    referredUserEmail: c.referrals?.profiles?.email || 'Unknown',
-    amount: c.amount,
-    type: c.commission_type,
-    status: c.status,
+    referralId: c.id,
+    referredUserEmail: emailMap.get(c.referred_user_id) || 'Unknown',
+    amount: parseFloat(c.commission_amount || '0'),
+    type: c.event_type as 'purchase' | 'maintenance' | 'upgrade' | 'marketplace',
+    status: c.status as 'pending' | 'paid' | 'rejected',
     createdAt: c.created_at,
     paidAt: c.paid_at
   }));
 }
 
-export async function trackReferralClick(referralCode: string): Promise<void> {
-  await supabase.from('referral_clicks').insert({
-    referral_code: referralCode,
-    ip_hash: 'anonymous',
-    user_agent: navigator.userAgent
-  });
+export async function trackReferralClick(_referralCode: string): Promise<void> {
+  // Referral click tracking is not supported in the current DB schema
+  // (referral_clicks view maps to referral_earnings which requires referrer_id + referred_user_id)
 }
 
 export async function applyReferralCode(
@@ -223,23 +228,19 @@ export async function applyReferralCode(
   }
 
   const { data: existing } = await supabase
-    .from('referrals')
-    .select('id')
-    .eq('referred_id', newUserId)
+    .from('profiles')
+    .select('referred_by')
+    .eq('id', newUserId)
     .maybeSingle();
 
-  if (existing) {
+  if (existing?.referred_by) {
     return { success: false, error: 'Already referred' };
   }
 
   const { error } = await supabase
-    .from('referrals')
-    .insert({
-      referrer_id: referrer.id,
-      referred_id: newUserId,
-      tier: 1,
-      status: 'pending'
-    });
+    .from('profiles')
+    .update({ referred_by: referrer.id })
+    .eq('id', newUserId);
 
   if (error) {
     return { success: false, error: 'Failed to apply referral' };
@@ -271,20 +272,41 @@ export async function getReferralLeaderboard(limit: number = 10): Promise<{
   totalEarnings: number;
   rank: number;
 }[]> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, referral_count, referral_earnings')
-    .gt('referral_count', 0)
-    .order('referral_count', { ascending: false })
-    .limit(limit);
+  const { data: referrers, error } = await supabase
+    .from('referral_earnings')
+    .select('referrer_id, commission_amount, status')
+    .eq('status', 'paid');
 
   if (error) throw error;
 
-  return (data || []).map((u, index) => ({
-    userId: u.id,
-    displayName: u.username || 'Anonymous',
-    totalReferrals: u.referral_count || 0,
-    totalEarnings: u.referral_earnings || 0,
-    rank: index + 1
-  }));
+  const statsByUser = new Map<string, { count: number; earnings: number }>();
+  for (const e of referrers || []) {
+    const existing = statsByUser.get(e.referrer_id) || { count: 0, earnings: 0 };
+    existing.earnings += parseFloat(e.commission_amount || '0');
+    statsByUser.set(e.referrer_id, existing);
+  }
+
+  const { data: profilesData } = await supabase
+    .from('profiles')
+    .select('id, username, full_name')
+    .in('id', [...statsByUser.keys()]);
+
+  const nameMap = new Map<string, string>();
+  for (const p of profilesData || []) {
+    nameMap.set(p.id, p.full_name || p.username || 'Anonymous');
+  }
+
+  const results = [...statsByUser.entries()]
+    .map(([userId, stats]) => ({
+      userId,
+      displayName: nameMap.get(userId) || 'Anonymous',
+      totalReferrals: stats.count,
+      totalEarnings: stats.earnings,
+      rank: 0
+    }))
+    .sort((a, b) => b.totalEarnings - a.totalEarnings)
+    .slice(0, limit)
+    .map((r, i) => ({ ...r, rank: i + 1 }));
+
+  return results;
 }

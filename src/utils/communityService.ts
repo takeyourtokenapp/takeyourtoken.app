@@ -292,7 +292,7 @@ export const communityService = {
         .from('user_lesson_progress')
         .select('*')
         .eq('user_id', user.id)
-        .eq('completed', true);
+        .eq('is_completed', true);
 
       if (miners && miners.length >= 1) {
         await this.grantAchievement(
