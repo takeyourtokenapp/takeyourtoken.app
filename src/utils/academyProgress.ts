@@ -84,21 +84,21 @@ export function getXpToNextRank(xp: number, currentRank: AcademyRank): number {
 
 export async function getUserAcademyProfile(userId: string): Promise<AcademyProfile | null> {
   const { data: progress, error } = await supabase
-    .from('user_lesson_progress')
+    .from('academy_progress')
     .select(`
       *,
-      academy_lessons(title, track_id, xp_reward)
+      academy_lessons(title, track_id, completion_xp)
     `)
     .eq('user_id', userId);
 
   if (error) throw error;
 
-  const completedLessons = (progress || []).filter(p => p.completed_at !== null);
+  const completedLessons = (progress || []).filter(p => p.is_completed);
   const totalXp = completedLessons.reduce((sum, p) => {
-    return sum + (p.academy_lessons?.xp_reward || 0);
+    return sum + (p.xp_earned || p.academy_lessons?.completion_xp || 0);
   }, 0);
 
-  const uniqueTracks = new Set(completedLessons.map(p => p.academy_lessons?.track_id));
+  const uniqueTracks = new Set(completedLessons.map(p => p.academy_lessons?.track_id).filter(Boolean));
 
   const { data: certificates } = await supabase
     .from('academy_certificates')
@@ -133,12 +133,12 @@ export async function getUserAcademyProfile(userId: string): Promise<AcademyProf
 export async function getUserLessonProgress(userId: string): Promise<LessonProgress[]> {
   const { data: allLessons } = await supabase
     .from('academy_lessons')
-    .select('id, title, track_id, xp_reward')
+    .select('id, title, track_id, completion_xp')
     .eq('is_published', true)
-    .order('order_index');
+    .order('sort_order');
 
   const { data: userProgress } = await supabase
-    .from('user_lesson_progress')
+    .from('academy_progress')
     .select('*')
     .eq('user_id', userId);
 
@@ -153,11 +153,11 @@ export async function getUserLessonProgress(userId: string): Promise<LessonProgr
       lessonId: lesson.id,
       title: lesson.title,
       trackId: lesson.track_id,
-      status: progress?.completed_at ? 'completed' : progress ? 'in_progress' : 'not_started',
-      progress: progress?.progress_percent || 0,
-      quizScore: progress?.quiz_score || null,
+      status: progress?.is_completed ? 'completed' : progress ? 'in_progress' : 'not_started',
+      progress: progress?.is_completed ? 100 : 0,
+      quizScore: progress?.quiz_score ?? null,
       completedAt: progress?.completed_at || null,
-      xpEarned: progress?.completed_at ? lesson.xp_reward : 0
+      xpEarned: progress?.is_completed ? (progress.xp_earned || lesson.completion_xp || 0) : 0
     };
   });
 }
@@ -167,16 +167,16 @@ export async function getTrackProgress(userId: string): Promise<TrackProgress[]>
     .from('academy_tracks')
     .select(`
       id,
-      name,
-      academy_lessons(id, xp_reward)
+      title,
+      academy_lessons(id, completion_xp)
     `)
-    .eq('is_active', true);
+    .eq('is_published', true);
 
   const { data: userProgress } = await supabase
-    .from('user_lesson_progress')
-    .select('lesson_id, completed_at')
+    .from('academy_progress')
+    .select('lesson_id, is_completed')
     .eq('user_id', userId)
-    .not('completed_at', 'is', null);
+    .eq('is_completed', true);
 
   const { data: certificates } = await supabase
     .from('academy_certificates')
@@ -194,12 +194,12 @@ export async function getTrackProgress(userId: string): Promise<TrackProgress[]>
   return (tracks || []).map(track => {
     const lessons = track.academy_lessons || [];
     const completedLessons = lessons.filter(l => completedLessonIds.has(l.id));
-    const totalXp = lessons.reduce((sum, l) => sum + (l.xp_reward || 0), 0);
-    const earnedXp = completedLessons.reduce((sum, l) => sum + (l.xp_reward || 0), 0);
+    const totalXp = lessons.reduce((sum, l) => sum + (l.completion_xp || 0), 0);
+    const earnedXp = completedLessons.reduce((sum, l) => sum + (l.completion_xp || 0), 0);
 
     return {
       trackId: track.id,
-      trackName: track.name,
+      trackName: track.title,
       totalLessons: lessons.length,
       completedLessons: completedLessons.length,
       progressPercent: lessons.length > 0 ? (completedLessons.length / lessons.length) * 100 : 0,
@@ -218,7 +218,7 @@ export async function completeLesson(
 ): Promise<{ success: boolean; xpEarned: number; newRank?: AcademyRank }> {
   const { data: lesson } = await supabase
     .from('academy_lessons')
-    .select('xp_reward, title, track_id')
+    .select('completion_xp, title, track_id')
     .eq('id', lessonId)
     .single();
 
@@ -227,12 +227,14 @@ export async function completeLesson(
   }
 
   const { error } = await supabase
-    .from('user_lesson_progress')
+    .from('academy_progress')
     .upsert({
       user_id: userId,
       lesson_id: lessonId,
-      progress_percent: 100,
-      quiz_score: quizScore,
+      is_completed: true,
+      quiz_score: quizScore ?? null,
+      quiz_passed: quizScore !== undefined ? quizScore >= 70 : null,
+      xp_earned: lesson.completion_xp,
       completed_at: new Date().toISOString()
     }, {
       onConflict: 'user_id,lesson_id'
@@ -245,13 +247,13 @@ export async function completeLesson(
   await updateStreak(userId);
 
   const profile = await getUserAcademyProfile(userId);
-  const previousXp = (profile?.totalXp || 0) - lesson.xp_reward;
+  const previousXp = (profile?.totalXp || 0) - lesson.completion_xp;
   const previousRank = getRankFromXp(previousXp);
   const newRank = profile?.currentRank;
 
   return {
     success: true,
-    xpEarned: lesson.xp_reward,
+    xpEarned: lesson.completion_xp,
     newRank: newRank !== previousRank ? newRank : undefined
   };
 }
@@ -309,7 +311,7 @@ export async function claimCertificate(
     .from('academy_tracks')
     .select(`
       id,
-      name,
+      title,
       academy_lessons(id)
     `)
     .eq('id', trackId)
@@ -322,11 +324,11 @@ export async function claimCertificate(
   const lessonIds = track.academy_lessons?.map(l => l.id) || [];
 
   const { data: completed } = await supabase
-    .from('user_lesson_progress')
+    .from('academy_progress')
     .select('lesson_id')
     .eq('user_id', userId)
     .in('lesson_id', lessonIds)
-    .not('completed_at', 'is', null);
+    .eq('is_completed', true);
 
   if ((completed?.length || 0) < lessonIds.length) {
     return { success: false, error: 'Not all lessons completed' };
@@ -348,8 +350,10 @@ export async function claimCertificate(
     .insert({
       user_id: userId,
       track_id: trackId,
-      issued_at: new Date().toISOString(),
-      certificate_hash: `CERT-${userId.slice(0, 8)}-${trackId.slice(0, 8)}-${Date.now()}`
+      certificate_type: 'track_completion',
+      title: track.title,
+      is_soulbound: true,
+      issued_at: new Date().toISOString()
     })
     .select('id')
     .single();
