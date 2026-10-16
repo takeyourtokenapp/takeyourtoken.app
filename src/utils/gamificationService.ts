@@ -192,7 +192,7 @@ export class GamificationService {
     const { data, error } = await supabase
       .from('achievement_definitions')
       .select('*')
-      .order('rarity', { ascending: false });
+      .order('xp_reward', { ascending: false });
 
     if (error) throw error;
     return data || [];

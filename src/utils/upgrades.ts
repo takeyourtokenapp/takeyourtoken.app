@@ -131,25 +131,26 @@ export async function upgradeMinerHashrate(
 
     if (paymentAsset === 'TYT') {
       await supabase
-        .from('token_burns')
+        .from('burn_events')
         .insert({
+          burn_type: 'upgrade',
           amount_tyt: paymentAmount.toString(),
-          burn_source: 'upgrade',
-          user_id: userId,
-          status: 'pending'
+          burn_address: '0000000000000000000000000000000000000000',
+          status: 'pending',
+          metadata: { user_id: userId, miner_id: minerId }
         });
     }
 
     await supabase
-      .from('miner_upgrade_history')
+      .from('miner_upgrades')
       .insert({
         miner_id: minerId,
         user_id: userId,
         upgrade_type: 'hashrate',
-        old_value: miner.hashrate_th.toString(),
-        new_value: newHashrate.toString(),
-        cost_amount: paymentAmount.toString(),
-        cost_asset: paymentAsset
+        from_value: miner.hashrate_th,
+        to_value: newHashrate,
+        cost: paymentAmount,
+        cost_currency: paymentAsset
       });
 
     return { success: true, newValue: newHashrate };
@@ -221,25 +222,26 @@ export async function upgradeMinerEfficiency(
 
     if (paymentAsset === 'TYT') {
       await supabase
-        .from('token_burns')
+        .from('burn_events')
         .insert({
+          burn_type: 'upgrade',
           amount_tyt: paymentAmount.toString(),
-          burn_source: 'upgrade',
-          user_id: userId,
-          status: 'pending'
+          burn_address: '0000000000000000000000000000000000000000',
+          status: 'pending',
+          metadata: { user_id: userId, miner_id: minerId }
         });
     }
 
     await supabase
-      .from('miner_upgrade_history')
+      .from('miner_upgrades')
       .insert({
         miner_id: minerId,
         user_id: userId,
         upgrade_type: 'efficiency',
-        old_value: miner.efficiency_w_per_th.toString(),
-        new_value: newEfficiency.toString(),
-        cost_amount: paymentAmount.toString(),
-        cost_asset: paymentAsset
+        from_value: miner.efficiency_w_per_th,
+        to_value: newEfficiency,
+        cost: paymentAmount,
+        cost_currency: paymentAsset
       });
 
     return { success: true, newValue: newEfficiency };

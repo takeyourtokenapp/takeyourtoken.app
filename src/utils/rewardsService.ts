@@ -102,7 +102,7 @@ export class RewardsService {
     const { data, error } = await supabase
       .from('reward_pools')
       .select('*')
-      .order('date', { ascending: false })
+      .order('reward_date', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -128,15 +128,15 @@ export class RewardsService {
       .from('daily_rewards')
       .select(includeMiner ? '*, miner:nft_miners(token_id, name, hashrate, efficiency)' : '*')
       .eq('user_id', userId)
-      .order('date', { ascending: false })
+      .order('reward_date', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (startDate) {
-      query = query.gte('date', startDate);
+      query = query.gte('reward_date', startDate);
     }
 
     if (endDate) {
-      query = query.lte('date', endDate);
+      query = query.lte('reward_date', endDate);
     }
 
     const { data, error } = await query;
@@ -257,7 +257,7 @@ export class RewardsService {
       .from('reward_claims')
       .select('*')
       .eq('user_id', userId)
-      .order('claimed_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -281,11 +281,10 @@ export class RewardsService {
     const { data, error } = await supabase
       .from('reward_claims')
       .insert({
-        reward_id: rewardId,
         user_id: session.session.user.id,
-        amount_btc: amountBtc,
-        transaction_hash: transactionHash,
-        blockchain,
+        reward_date: new Date().toISOString().split('T')[0],
+        amount: amountBtc,
+        status: 'completed',
       })
       .select()
       .single();
@@ -332,11 +331,11 @@ export class RewardsService {
   async isDistributed(date: string): Promise<boolean> {
     const { data } = await supabase
       .from('reward_pools')
-      .select('distributed_at')
-      .eq('date', date)
+      .select('status')
+      .eq('reward_date', date)
       .maybeSingle();
 
-    return !!data?.distributed_at;
+    return data?.status === 'distributed';
   }
 
   /**
@@ -349,17 +348,14 @@ export class RewardsService {
   }> {
     const { data, error } = await supabase
       .from('reward_pools')
-      .select('gross_btc, btc_price_usd')
-      .not('distributed_at', 'is', null);
+      .select('pool_amount, distributed_amount')
+      .eq('status', 'distributed');
 
     if (error) throw error;
 
     const total_pools = data?.length || 0;
-    const total_btc = data?.reduce((sum, pool) => sum + Number(pool.gross_btc), 0) || 0;
-    const total_usd = data?.reduce(
-      (sum, pool) => sum + Number(pool.gross_btc) * Number(pool.btc_price_usd),
-      0
-    ) || 0;
+    const total_btc = data?.reduce((sum, pool) => sum + Number(pool.distributed_amount || pool.pool_amount), 0) || 0;
+    const total_usd = total_btc * 95000;
 
     return { total_pools, total_btc, total_usd };
   }
@@ -408,7 +404,7 @@ export class RewardsService {
     let query = supabase
       .from('daily_rewards')
       .select('*, miner:nft_miners(token_id, name, hashrate, efficiency)', { count: 'exact' })
-      .order('date', { ascending: false })
+      .order('reward_date', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (userId) {
@@ -420,11 +416,11 @@ export class RewardsService {
     }
 
     if (startDate) {
-      query = query.gte('date', startDate);
+      query = query.gte('reward_date', startDate);
     }
 
     if (endDate) {
-      query = query.lte('date', endDate);
+      query = query.lte('reward_date', endDate);
     }
 
     const { data, error, count } = await query;

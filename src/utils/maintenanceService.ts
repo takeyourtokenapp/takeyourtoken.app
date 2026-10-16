@@ -305,35 +305,18 @@ export class MaintenanceService {
     const tytBurned = asset === 'TYT' ? amount * 0.2 : 0;
 
     const { data: payment, error: paymentError } = await supabase
-      .from('maintenance_payments')
-      .insert({
-        invoice_id: invoiceId,
-        user_id: session.session.user.id,
-        amount,
-        amount_usd: amountUSD,
-        asset,
-        tyt_burned: tytBurned,
-        discount_pct: invoice.discount_pct,
-        transaction_id: transactionId,
-        metadata: {
-          paid_at: new Date().toISOString(),
-        },
-      })
-      .select()
-      .single();
-
-    if (paymentError) throw paymentError;
-
-    const { error: updateError } = await supabase
       .from('maintenance_invoices')
       .update({
         status: 'paid',
         paid_at: new Date().toISOString(),
-        asset,
+        payment_currency: asset,
+        payment_amount: amount,
       })
-      .eq('id', invoiceId);
+      .eq('id', invoiceId)
+      .select()
+      .single();
 
-    if (updateError) throw updateError;
+    if (paymentError) throw paymentError;
 
     return payment;
   }
@@ -343,10 +326,11 @@ export class MaintenanceService {
    */
   async getPaymentHistory(userId: string, limit = 50): Promise<MaintenancePayment[]> {
     const { data, error } = await supabase
-      .from('maintenance_payments')
+      .from('maintenance_invoices')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .eq('status', 'paid')
+      .order('paid_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -358,10 +342,11 @@ export class MaintenanceService {
    */
   async getInvoicePayments(invoiceId: string): Promise<MaintenancePayment[]> {
     const { data, error } = await supabase
-      .from('maintenance_payments')
+      .from('maintenance_invoices')
       .select('*')
-      .eq('invoice_id', invoiceId)
-      .order('created_at');
+      .eq('id', invoiceId)
+      .eq('status', 'paid')
+      .order('paid_at');
 
     if (error) throw error;
     return data || [];
