@@ -68,6 +68,7 @@ const Bridge = lazyWithRetry(() => import('./pages/app/Bridge'), 'Bridge');
 const AdminContracts = lazyWithRetry(() => import('./pages/app/AdminContracts'), 'AdminContracts');
 const AoiProfile = lazyWithRetry(() => import('./pages/app/AoiProfile'), 'AoiProfile');
 const Orbital = lazyWithRetry(() => import('./pages/app/Orbital'), 'Orbital');
+const MarketplaceActions = lazyWithRetry(() => import('./pages/app/MarketplaceActions'), 'MarketplaceActions');
 
 // Loading component
 function PageLoader() {
@@ -138,6 +139,7 @@ function App() {
                 <Route path="mining-stats" element={<MiningStatsDashboard />} />
                 <Route path="rewards" element={<Rewards />} />
                 <Route path="marketplace" element={<Marketplace />} />
+                <Route path="marketplace/actions" element={<MarketplaceActions />} />
                 <Route path="wallet" element={<WalletUnified />} />
                 <Route path="swap" element={<Swap />} />
                 <Route path="bridge" element={<Bridge />} />

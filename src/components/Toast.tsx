@@ -1,49 +1,57 @@
-import { useEffect } from 'react';
-import { CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, AlertCircle, Info, X } from 'lucide-react';
+
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface ToastProps {
   message: string;
-  type: 'success' | 'error' | 'warning';
+  type: ToastType;
+  isVisible: boolean;
   onClose: () => void;
-  duration?: number;
 }
 
-export default function Toast({ message, type, onClose, duration = 5000 }: ToastProps) {
+const iconMap = {
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertCircle,
+  info: Info,
+};
+
+const colorMap = {
+  success: 'text-green-400 border-green-500/30 bg-green-500/10',
+  error: 'text-red-400 border-red-500/30 bg-red-500/10',
+  warning: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
+  info: 'text-blue-400 border-blue-500/30 bg-blue-500/10',
+};
+
+export default function Toast({ message, type, isVisible, onClose }: ToastProps) {
+  const [show, setShow] = useState(isVisible);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, duration);
+    setShow(isVisible);
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        setShow(false);
+        setTimeout(onClose, 300);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
 
-    return () => clearTimeout(timer);
-  }, [duration, onClose]);
-
-  const icons = {
-    success: <CheckCircle2 className="w-5 h-5 text-green-400" />,
-    error: <XCircle className="w-5 h-5 text-red-400" />,
-    warning: <AlertCircle className="w-5 h-5 text-yellow-400" />
-  };
-
-  const colors = {
-    success: 'bg-green-500/10 border-green-500/50',
-    error: 'bg-red-500/10 border-red-500/50',
-    warning: 'bg-yellow-500/10 border-yellow-500/50'
-  };
+  const Icon = iconMap[type];
 
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-md animate-slide-in`}>
-      <div className={`${colors[type]} border rounded-lg p-4 shadow-lg backdrop-blur-sm`}>
-        <div className="flex items-start gap-3">
-          {icons[type]}
-          <div className="flex-1">
-            <p className="text-sm text-gray-200">{message}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
+    <div
+      className={`fixed top-20 right-4 z-[100] transition-all duration-300 ${
+        show ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
+      }`}
+    >
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-sm ${colorMap[type]}`}>
+        <Icon size={20} />
+        <span className="text-sm font-medium text-primary-text">{message}</span>
+        <button onClick={onClose} className="text-tertiary-text hover:text-primary-text">
+          <X size={16} />
+        </button>
       </div>
     </div>
   );

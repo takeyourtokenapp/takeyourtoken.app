@@ -76,13 +76,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  console.log('[AppLayout] Admin check:', {
-    userEmail: user?.email,
-    isAdmin,
-    adminLoading,
-    shouldShowAdmin: isAdmin && !adminLoading
-  });
-
   const handleSignOut = async () => {
     try {
       console.log('Signing out...');
@@ -117,11 +110,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     ]
   };
 
-  // Debug logging
-  console.log('[AppLayout] Creating navGroups with isAdmin:', isAdmin);
-  console.log('[AppLayout] adminLoading:', adminLoading);
-  console.log('[AppLayout] Will add adminGroup:', isAdmin ? 'YES' : 'NO');
-
   const navGroups: NavGroup[] = [
     ...(isAdmin ? [adminGroup] : []),
     {
@@ -135,6 +123,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         { path: '/app/data-center', icon: Server, label: 'Data Centers' },
         { path: '/app/rewards', icon: TrendingUp, label: 'Rewards' },
         { path: '/app/marketplace', icon: ShoppingCart, label: 'Marketplace' },
+        { path: '/app/marketplace/actions', icon: RefreshCw, label: 'My Listings & Offers' },
       ]
     },
     {
