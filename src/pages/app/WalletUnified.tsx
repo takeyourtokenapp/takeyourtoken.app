@@ -91,19 +91,19 @@ export default function WalletUnified() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary-text flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
               <WalletIcon size={28} className="text-white" />
             </div>
             Ecosystem Wallet
           </h1>
-          <p className="text-tertiary-text mt-2">Unified wallet for all your crypto needs</p>
+          <p className="text-gray-400 mt-2">Unified wallet for all your crypto needs</p>
         </div>
 
         {/* Total Balance Card */}
         <div className="bg-gradient-to-br from-amber-500/10 to-orange-600/10 border border-amber-500/30 rounded-xl p-6 min-w-[280px]">
-          <div className="text-sm text-tertiary-text mb-1">Total Portfolio Value</div>
-          <div className="text-3xl font-bold text-primary-text flex items-center gap-2">
+          <div className="text-sm text-gray-400 mb-1">Total Portfolio Value</div>
+          <div className="text-3xl font-bold text-white flex items-center gap-2">
             ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <TrendingUp size={20} className="text-green-400" />
           </div>
@@ -115,7 +115,7 @@ export default function WalletUnified() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-secondary border border-secondary rounded-xl p-2 backdrop-blur-sm">
+      <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-2 backdrop-blur-sm">
         <div className="grid grid-cols-6 gap-2">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -129,12 +129,12 @@ export default function WalletUnified() {
                   flex flex-col items-center gap-2 py-4 px-4 rounded-lg transition-all duration-200
                   ${isActive
                     ? `bg-gradient-to-br ${tab.gradient} border border-current/30 shadow-lg scale-105`
-                    : 'hover:bg-tertiary border border-transparent'
+                    : 'hover:bg-gray-700/50 border border-transparent'
                   }
                 `}
               >
-                <Icon size={24} className={isActive ? tab.color : 'text-tertiary-text'} />
-                <span className={`text-sm font-semibold ${isActive ? 'text-primary-text' : 'text-tertiary-text'}`}>
+                <Icon size={24} className={isActive ? tab.color : 'text-gray-500'} />
+                <span className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-gray-500'}`}>
                   {tab.label}
                 </span>
               </button>

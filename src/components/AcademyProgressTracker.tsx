@@ -48,9 +48,9 @@ export default function AcademyProgressTracker() {
 
       const { data: userStats } = await supabase
         .from('profiles')
-        .select('rank_score, rank')
+        .select('rank_score, owl_rank')
         .eq('id', user?.id)
-        .maybeSingle();
+        .single();
 
       const { data: academyStats } = await supabase
         .from('user_academy_stats')
@@ -60,9 +60,9 @@ export default function AcademyProgressTracker() {
 
       const { data: tracks } = await supabase
         .from('academy_tracks')
-        .select('id, title, completion_xp')
+        .select('id, title, xp_reward')
         .eq('is_published', true)
-        .order('sort_order');
+        .order('order_index');
 
       const progressData: TrackProgress[] = [];
 
@@ -90,7 +90,7 @@ export default function AcademyProgressTracker() {
             track_title: track.title,
             total_lessons: totalLessons,
             completed_lessons: completed,
-            track_xp: track.completion_xp || 0,
+            track_xp: track.xp_reward || 0,
             completion_percentage: percentage
           });
         }
@@ -155,7 +155,7 @@ export default function AcademyProgressTracker() {
 
       setStats({
         totalXP: userStats?.rank_score || 0,
-        currentRank: userStats?.rank || 'worker',
+        currentRank: userStats?.owl_rank || 'Worker',
         lessonsCompleted: academyStats?.lessons_completed || 0,
         quizzesPassed: academyStats?.quizzes_passed || 0,
         currentStreak: academyStats?.current_streak_days || 0

@@ -92,7 +92,7 @@ export default function Transactions() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Transaction History</h1>
-          <p className="text-tertiary-text">View and export your complete transaction history</p>
+          <p className="text-gray-400">View and export your complete transaction history</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -107,7 +107,7 @@ export default function Transactions() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${
               filterOpen
                 ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-                : 'bg-secondary text-secondary-text border-secondary hover:bg-tertiary'
+                : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'
             }`}
           >
             <Filter className="w-4 h-4" />
@@ -118,24 +118,24 @@ export default function Transactions() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-tertiary-text" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by description, type, currency, or TX hash..."
-          className="w-full pl-12 pr-4 py-3 bg-secondary border border-secondary rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+          className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
         />
       </div>
 
       {/* Filters Panel */}
       {filterOpen && (
-        <div className="bg-secondary border border-secondary rounded-xl p-6">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-lg">Filters</h3>
             <button
               onClick={clearFilters}
-              className="text-sm text-tertiary-text hover:text-white transition-colors"
+              className="text-sm text-gray-400 hover:text-white transition-colors"
             >
               Clear All
             </button>
@@ -148,7 +148,7 @@ export default function Transactions() {
               <select
                 value={filters.type as string || ''}
                 onChange={(e) => handleFilterChange('type', e.target.value || undefined)}
-                className="w-full px-4 py-2 bg-tertiary border border-secondary rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
               >
                 <option value="">All Types</option>
                 <option value="deposit">Deposit</option>
@@ -172,7 +172,7 @@ export default function Transactions() {
               <select
                 value={filters.status as string || ''}
                 onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
-                className="w-full px-4 py-2 bg-tertiary border border-secondary rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -189,7 +189,7 @@ export default function Transactions() {
               <select
                 value={filters.currency || ''}
                 onChange={(e) => handleFilterChange('currency', e.target.value || undefined)}
-                className="w-full px-4 py-2 bg-tertiary border border-secondary rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
               >
                 <option value="">All Currencies</option>
                 <option value="BTC">Bitcoin (BTC)</option>
@@ -211,7 +211,7 @@ export default function Transactions() {
                 type="date"
                 value={filters.startDate ? filters.startDate.toISOString().split('T')[0] : ''}
                 onChange={(e) => handleFilterChange('startDate', e.target.value ? new Date(e.target.value) : undefined)}
-                className="w-full px-4 py-2 bg-tertiary border border-secondary rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -222,7 +222,7 @@ export default function Transactions() {
                 type="date"
                 value={filters.endDate ? filters.endDate.toISOString().split('T')[0] : ''}
                 onChange={(e) => handleFilterChange('endDate', e.target.value ? new Date(e.target.value) : undefined)}
-                className="w-full px-4 py-2 bg-tertiary border border-secondary rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -230,14 +230,14 @@ export default function Transactions() {
       )}
 
       {/* Transactions Table */}
-      <div className="bg-secondary border border-secondary rounded-xl overflow-hidden">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-tertiary-text">
+          <div className="p-12 text-center text-gray-400">
             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             Loading transactions...
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="p-12 text-center text-tertiary-text">
+          <div className="p-12 text-center text-gray-400">
             <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-30" />
             <p className="text-lg font-semibold mb-2">No transactions found</p>
             <p className="text-sm">Try adjusting your filters or make your first transaction!</p>
@@ -247,17 +247,17 @@ export default function Transactions() {
             {/* Desktop View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-tertiary/50 border-b border-secondary">
+                <thead className="bg-gray-900/50 border-b border-gray-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Description</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Amount</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Description</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Amount</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-secondary">
+                <tbody className="divide-y divide-gray-800">
                   {filteredTransactions.map((tx) => {
                     const statusDisplay = TransactionService.getTransactionStatusDisplay(tx.status);
                     const explorerUrl = tx.blockchain && tx.tx_hash
@@ -265,7 +265,7 @@ export default function Transactions() {
                       : null;
 
                     return (
-                      <tr key={tx.id} className="hover:bg-secondary/50 transition-colors">
+                      <tr key={tx.id} className="hover:bg-gray-800/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {getTypeIcon(tx.type)}
@@ -275,7 +275,7 @@ export default function Transactions() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-secondary-text text-sm">{tx.description}</span>
+                          <span className="text-gray-300 text-sm">{tx.description}</span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`font-bold ${getAmountColor(tx.type)}`}>
@@ -288,7 +288,7 @@ export default function Transactions() {
                             ${statusDisplay.color === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : ''}
                             ${statusDisplay.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' : ''}
                             ${statusDisplay.color === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : ''}
-                            ${statusDisplay.color === 'gray' ? 'bg-gray-500/20 text-tertiary-text border border-gray-500/50' : ''}
+                            ${statusDisplay.color === 'gray' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/50' : ''}
                           `}>
                             {statusDisplay.label}
                           </span>
@@ -298,7 +298,7 @@ export default function Transactions() {
                             <div className="font-medium">
                               {new Date(tx.created_at).toLocaleDateString()}
                             </div>
-                            <div className="text-tertiary-text text-xs">
+                            <div className="text-gray-400 text-xs">
                               {new Date(tx.created_at).toLocaleTimeString()}
                             </div>
                           </div>
@@ -324,7 +324,7 @@ export default function Transactions() {
             </div>
 
             {/* Mobile View */}
-            <div className="md:hidden divide-y divide-secondary">
+            <div className="md:hidden divide-y divide-gray-800">
               {filteredTransactions.map((tx) => {
                 const statusDisplay = TransactionService.getTransactionStatusDisplay(tx.status);
                 const explorerUrl = tx.blockchain && tx.tx_hash
@@ -340,7 +340,7 @@ export default function Transactions() {
                           <div className="font-semibold">
                             {TransactionService.getTransactionTypeDisplay(tx.type)}
                           </div>
-                          <div className="text-xs text-tertiary-text">
+                          <div className="text-xs text-gray-400">
                             {new Date(tx.created_at).toLocaleString()}
                           </div>
                         </div>
@@ -355,7 +355,7 @@ export default function Transactions() {
                       </span>
                     </div>
 
-                    <p className="text-sm text-secondary-text">{tx.description}</p>
+                    <p className="text-sm text-gray-300">{tx.description}</p>
 
                     <div className="flex items-center justify-between">
                       <span className={`font-bold text-lg ${getAmountColor(tx.type)}`}>
@@ -379,22 +379,22 @@ export default function Transactions() {
             </div>
 
             {/* Pagination */}
-            <div className="bg-tertiary/50 border-t border-secondary px-6 py-4 flex items-center justify-between">
-              <div className="text-sm text-tertiary-text">
+            <div className="bg-gray-900/50 border-t border-gray-700 px-6 py-4 flex items-center justify-between">
+              <div className="text-sm text-gray-400">
                 Showing {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleFilterChange('offset', Math.max(0, (filters.offset || 0) - (filters.limit || 50)))}
                   disabled={(filters.offset || 0) === 0}
-                  className="px-4 py-2 bg-secondary border border-secondary rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-tertiary transition-colors"
+                  className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => handleFilterChange('offset', (filters.offset || 0) + (filters.limit || 50))}
                   disabled={filteredTransactions.length < (filters.limit || 50)}
-                  className="px-4 py-2 bg-secondary border border-secondary rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-tertiary transition-colors"
+                  className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition-colors"
                 >
                   Next
                 </button>

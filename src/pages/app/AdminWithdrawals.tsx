@@ -15,7 +15,7 @@ interface Withdrawal {
   user_email?: string;
 }
 
-function AdminWithdrawalsContent() {
+export default function AdminWithdrawals() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'processing'>('pending');
@@ -365,13 +365,5 @@ function WithdrawalCard({
         </div>
       )}
     </div>
-  );
-}
-
-export default function AdminWithdrawals() {
-  return (
-    <AccessGuard requiredLevel="admin" redirectTo="/app">
-      <AdminWithdrawalsContent />
-    </AccessGuard>
   );
 }

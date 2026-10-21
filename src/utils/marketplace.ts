@@ -39,7 +39,7 @@ export async function purchaseMiner(
       .from('custodial_wallets')
       .select('balance')
       .eq('user_id', buyerId)
-      .eq('currency', listing.price_currency)
+      .eq('asset', listing.list_price_asset)
       .maybeSingle();
 
     if (walletError || !buyerWallet) {
@@ -67,7 +67,7 @@ export async function purchaseMiner(
       p_seller_id: listing.seller_id,
       p_miner_id: listing.miner_id,
       p_purchase_amount: purchaseAmount,
-      p_asset: listing.price_currency,
+      p_asset: listing.list_price_asset,
       p_marketplace_fee: marketplaceFee,
       p_seller_amount: sellerAmount
     });
@@ -77,15 +77,15 @@ export async function purchaseMiner(
       .update({
         status: 'sold',
         sold_at: new Date().toISOString(),
-        final_sale_price: listing.price_amount
+        final_sale_price: listing.list_price_amount
       })
       .eq('id', listingId);
 
     await supabase
       .from('nft_miners')
       .update({
-        user_id: buyerId,
-        purchased_at: new Date().toISOString()
+        owner_id: buyerId,
+        acquired_at: new Date().toISOString()
       })
       .eq('id', listing.miner_id);
 
@@ -95,13 +95,13 @@ export async function purchaseMiner(
         balance: (buyerBalance - purchaseAmount).toString()
       })
       .eq('user_id', buyerId)
-      .eq('currency', listing.price_currency);
+      .eq('asset', listing.list_price_asset);
 
     const { data: sellerWallet } = await supabase
       .from('custodial_wallets')
       .select('balance')
       .eq('user_id', listing.seller_id)
-      .eq('currency', listing.price_currency)
+      .eq('asset', listing.list_price_asset)
       .maybeSingle();
 
     if (sellerWallet) {
@@ -111,7 +111,7 @@ export async function purchaseMiner(
           balance: (parseFloat(sellerWallet.balance) + sellerAmount).toString()
         })
         .eq('user_id', listing.seller_id)
-        .eq('currency', listing.price_currency);
+        .eq('asset', listing.list_price_asset);
     }
 
     await recordFoundationDonation(foundationAmount, listing.list_price_asset, buyerId);
@@ -140,7 +140,7 @@ export async function createListing(
       .from('nft_miners')
       .select('*')
       .eq('id', minerId)
-      .eq('user_id', sellerId)
+      .eq('owner_id', sellerId)
       .maybeSingle();
 
     if (!miner) {
@@ -168,8 +168,8 @@ export async function createListing(
         miner_id: minerId,
         seller_id: sellerId,
         listing_type: listingType,
-        price_amount: priceAmount,
-        price_currency: priceAsset,
+        list_price_amount: priceAmount,
+        list_price_asset: priceAsset,
         status: 'active'
       })
       .select()
@@ -243,11 +243,12 @@ async function recordFoundationDonation(
   await supabase
     .from('foundation_donations')
     .insert({
-      donor_user_id: donorId,
-      amount: amount.toString(),
-      currency: asset,
+      user_id: donorId,
+      amount_crypto: amount.toString(),
+      crypto_asset: asset,
       amount_usd: amountUsd.toString(),
-      source: 'marketplace_fee',
+      donation_source: 'marketplace_fee',
+      is_automatic: true
     });
 }
 

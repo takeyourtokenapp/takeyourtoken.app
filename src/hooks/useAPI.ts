@@ -42,9 +42,9 @@ export function useDashboardData(userId?: string) {
           .order('reward_date', { ascending: false })
           .limit(30),
         supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
+          .from('user_profiles')
+          .select('*, vip_levels(*)')
+          .eq('user_id', userId)
           .maybeSingle()
       ]);
 
@@ -130,7 +130,7 @@ export function useMarketplace(filters?: {
     queryFn: async () => {
       let query = supabase
         .from('marketplace_listings')
-        .select('*, nft_miners(*), profiles!seller_id(*)')
+        .select('*, nft_miners(*), user_profiles!seller_id(*)')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
@@ -199,19 +199,10 @@ export function useWallets(userId?: string) {
         .from('custodial_wallets')
         .select('*')
         .eq('user_id', userId)
-        .order('currency');
+        .order('asset');
 
       if (error) throw error;
-
-      // Transform currency to asset for backward compatibility
-      const wallets = (data || []).map(wallet => ({
-        ...wallet,
-        asset: wallet.currency,
-        balance: wallet.balance?.toString() || '0',
-        locked_balance: wallet.locked_balance?.toString() || '0'
-      }));
-
-      return wallets as any;
+      return data as CustodialWallet[];
     },
     enabled: !!userId,
     refetchInterval: 10000
@@ -226,7 +217,7 @@ export function useAcademyTracks() {
         .from('academy_tracks')
         .select('*, academy_lessons(count)')
         .eq('is_published', true)
-        .order('sort_order');
+        .order('display_order');
 
       if (error) throw error;
       return data as AcademyTrack[];
@@ -251,19 +242,14 @@ export function useAcademyTrack(trackId?: string, userId?: string) {
           .select('*')
           .eq('track_id', trackId)
           .eq('is_published', true)
-          .order('sort_order'),
+          .order('display_order'),
         userId
           ? supabase
-              .from('academy_progress')
+              .from('user_course_progress')
               .select('*')
               .eq('user_id', userId)
-              .in('lesson_id', (
-                await supabase
-                  .from('academy_lessons')
-                  .select('id')
-                  .eq('track_id', trackId)
-                ).data?.map(l => l.id) || []
-              )
+              .eq('course_id', trackId)
+              .maybeSingle()
           : Promise.resolve({ data: null, error: null })
       ]);
 
@@ -332,7 +318,7 @@ export function useUpgradeMiner() {
     }) => {
       const { data, error } = await supabase
         .from('nft_miners')
-        .update({ [upgradeType === 'hashrate' ? 'hashrate' : upgradeType === 'efficiency' ? 'efficiency' : 'power_level']: newValue })
+        .update({ [upgradeType === 'hashrate' ? 'hashrate_th' : upgradeType === 'efficiency' ? 'efficiency_w_per_th' : 'power_level']: newValue })
         .eq('id', minerId)
         .select()
         .single();
@@ -386,10 +372,14 @@ export function useServiceButton(userId?: string) {
       if (!userId) throw new Error('User ID required');
 
       const { data, error } = await supabase
-        .rpc('press_service_button', {
-          p_user_id: userId,
-          p_reward_amount: rewardAmount
-        });
+        .from('user_profiles')
+        .update({
+          service_button_last_pressed: new Date().toISOString(),
+          service_button_presses: supabase.rpc('increment')
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
 
       if (error) throw error;
 

@@ -2,23 +2,15 @@ export interface Profile {
   id: string;
   email: string;
   username?: string;
-  full_name?: string;
-  kyc_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
-  kyc_level?: number;
-  kyc_submitted_at?: string;
-  kyc_document_url?: string;
-  two_fa_enabled: boolean;
-  referral_code: string;
-  referred_by?: string;
+  kyc_status: 'pending' | 'approved' | 'rejected';
+  kyc_level: number;
   vip_level: number;
   total_hashrate: number;
-  rank_score?: number;
-  rank?: 'worker' | 'academic' | 'diplomat' | 'peacekeeper' | 'warrior';
+  rank_score: number;
+  owl_rank: 'worker' | 'academic' | 'diplomat' | 'peacekeeper' | 'warrior';
   avatar_id?: string;
-  is_admin?: boolean;
-  service_button_last_pressed?: string;
-  service_button_presses?: number;
-  total_spent?: number;
+  referred_by?: string;
+  referral_code: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,12 +18,9 @@ export interface Profile {
 export interface CustodialWallet {
   id: string;
   user_id: string;
-  currency: 'BTC' | 'TYT' | 'USDT' | 'TRX' | 'ETH' | 'SOL';
+  asset: 'BTC' | 'USDT' | 'TYT' | 'ETH' | 'SOL' | 'TRX' | 'XRP';
   balance: string;
   locked_balance: string;
-  address?: string;
-  blockchain?: string;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -143,19 +132,15 @@ export interface NFTMiner {
 
 export interface DailyReward {
   id: string;
-  user_id: string;
   miner_id: string;
   reward_date: string;
-  btc_amount: string;
-  hashrate_snapshot: number;
-  efficiency_snapshot: number;
-  uptime_percent?: number;
-  network_difficulty?: string;
-  btc_price_usd?: string;
-  status: 'pending' | 'processing' | 'processed' | 'paid' | 'failed';
-  wallet_transaction_id?: string;
-  processed_at?: string;
-  metadata?: Record<string, any>;
+  gross_btc: string;
+  maintenance_cost_btc: string;
+  net_btc: string;
+  hashrate_snapshot_th: number;
+  global_difficulty?: string;
+  pool_hashrate_th?: string;
+  merkle_leaf?: string;
   created_at: string;
 }
 
@@ -203,29 +188,7 @@ export interface VIPTier {
   exclusive_avatars: boolean;
   custom_badge?: string;
   description?: string;
-  service_button_reward?: number;
-  min_spent?: number;
-  max_spent?: number;
-  created_at: string;
 }
-
-export interface UserProfile {
-  user_id: string;
-  kyc_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
-  kyc_tier: number;
-  access_level: 'restricted' | 'standard' | 'premium' | 'vip';
-  reward_points: number;
-  total_trading_volume: number;
-  registration_date: string;
-  kyc_submitted_at?: string;
-  kyc_approved_at?: string;
-  last_active: string;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export type VIPLevel = VIPTier;
 
 export interface OwlRank {
   rank: 'worker' | 'academic' | 'diplomat' | 'peacekeeper' | 'warrior';
@@ -239,14 +202,11 @@ export interface AcademyTrack {
   slug: string;
   title: string;
   description: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  difficulty_level: number;
   estimated_hours: number;
-  icon?: string;
-  color?: string;
-  sort_order: number;
-  completion_xp: number;
+  icon_name?: string;
+  display_order: number;
   is_published: boolean;
-  is_premium?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -256,15 +216,13 @@ export interface AcademyLesson {
   track_id: string;
   slug: string;
   title: string;
-  description: string;
   content_mdx: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  difficulty_level: number;
   estimated_minutes: number;
-  has_quiz: boolean;
-  completion_xp: number;
-  sort_order: number;
+  lesson_type: 'theory' | 'interactive' | 'quiz' | 'quest';
+  xp_reward: number;
+  display_order: number;
   is_published: boolean;
-  is_free: boolean;
   created_at: string;
   updated_at: string;
 }

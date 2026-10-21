@@ -3,7 +3,6 @@ import { Shield, Settings, Pause, Play, DollarSign, Flame, RefreshCw, AlertCircl
 import { useAccount } from 'wagmi';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
-import { contractAddresses } from '@/lib/web3/config';
 
 interface ContractInfo {
   name: string;
@@ -18,7 +17,7 @@ interface FeeConfig {
   academyFee: number;
 }
 
-function AdminContractsContent() {
+export default function AdminContracts() {
   const { address, isConnected } = useAccount();
   const { showToast } = useToast();
 
@@ -57,11 +56,11 @@ function AdminContractsContent() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_admin')
-        .eq('id', userData.user.id)
-        .maybeSingle();
+        .select('role, is_admin')
+        .eq('user_id', userData.user.id)
+        .single();
 
-      setIsAdmin(profile?.is_admin === true);
+      setIsAdmin(profile?.is_admin === true || profile?.role === 'admin');
     } catch (err) {
       console.error('Error checking admin access:', err);
       setIsAdmin(false);
@@ -72,41 +71,35 @@ function AdminContractsContent() {
 
   const loadContractData = async () => {
     try {
-      // Load contract addresses from centralized config
+      // Load contract addresses from env
       const contractList: ContractInfo[] = [
         {
           name: 'Miner NFT',
-          address: contractAddresses.minerNFT,
+          address: import.meta.env.VITE_MINER_NFT_ADDRESS || '0x0000000000000000000000000000000000000000',
           isPaused: false,
           balance: '0',
         },
         {
           name: 'Marketplace',
-          address: contractAddresses.marketplace,
+          address: import.meta.env.VITE_MARKETPLACE_ADDRESS || '0x0000000000000000000000000000000000000000',
           isPaused: false,
           balance: '0',
         },
         {
-          name: 'Rewards Merkle',
-          address: contractAddresses.rewardsMerkle,
+          name: 'Rewards Registry',
+          address: import.meta.env.VITE_REWARDS_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000',
           isPaused: false,
           balance: '0',
         },
         {
           name: 'Charity Vault',
-          address: contractAddresses.charityVault,
-          isPaused: false,
-          balance: '0',
-        },
-        {
-          name: 'Academy Vault',
-          address: contractAddresses.academyVault,
+          address: import.meta.env.VITE_CHARITY_VAULT_ADDRESS || '0x0000000000000000000000000000000000000000',
           isPaused: false,
           balance: '0',
         },
         {
           name: 'Fee Config',
-          address: contractAddresses.feeConfig,
+          address: import.meta.env.VITE_FEE_CONFIG_ADDRESS || '0x0000000000000000000000000000000000000000',
           isPaused: false,
           balance: '0',
         },
@@ -123,10 +116,10 @@ function AdminContractsContent() {
 
   const loadBurnData = async () => {
     try {
-      // Get pending burns — burn_events (not token_burns)
+      // Get pending burns
       const { data: burns } = await supabase
-        .from('burn_events')
-        .select('amount_tyt, status, burned_at')
+        .from('token_burns')
+        .select('amount_tyt, status, created_at')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -135,17 +128,17 @@ function AdminContractsContent() {
         setPendingBurn(total);
       }
 
-      // Get last burn execution — burned_at (not executed_at)
+      // Get last burn execution
       const { data: lastBurn } = await supabase
-        .from('burn_events')
-        .select('burned_at')
-        .eq('status', 'completed')
-        .order('burned_at', { ascending: false })
+        .from('token_burns')
+        .select('executed_at')
+        .eq('status', 'executed')
+        .order('executed_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (lastBurn?.burned_at) {
-        setLastBurnDate(new Date(lastBurn.burned_at));
+      if (lastBurn?.executed_at) {
+        setLastBurnDate(new Date(lastBurn.executed_at));
       }
     } catch (err) {
       console.error('Error loading burn data:', err);
@@ -226,17 +219,18 @@ function AdminContractsContent() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('id', userData.user.id)
-        .maybeSingle();
+        .eq('user_id', userData.user.id)
+        .single();
 
       if (!profile) return;
 
-      // Update pending burns to completed — burned_at (not executed_at)
+      // Update pending burns to executed
       await supabase
-        .from('burn_events')
+        .from('token_burns')
         .update({
-          status: 'completed',
-          burned_at: new Date().toISOString(),
+          status: 'executed',
+          executed_at: new Date().toISOString(),
+          executed_by: profile.id,
         })
         .eq('status', 'pending');
 
@@ -494,13 +488,5 @@ function AdminContractsContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function AdminContracts() {
-  return (
-    <AccessGuard requiredLevel="admin" redirectTo="/app">
-      <AdminContractsContent />
-    </AccessGuard>
   );
 }

@@ -1,91 +1,20 @@
-import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ReactNode } from 'react';
 import { useFeatureAccess, useUserProfile } from '../hooks/useAccessControl';
-import { useAdminCheck } from '../hooks/useAdminCheck';
 import { Lock, AlertCircle, TrendingUp, Shield, Award } from 'lucide-react';
 
-interface AccessGuardPropsFeature {
+interface AccessGuardProps {
   featureCode: string;
   children: ReactNode;
   fallback?: ReactNode;
   showRequirements?: boolean;
-  requiredLevel?: never;
-  redirectTo?: never;
 }
 
-interface AccessGuardPropsAdmin {
-  requiredLevel: 'admin';
-  redirectTo?: string;
-  children: ReactNode;
-  featureCode?: never;
-  fallback?: never;
-  showRequirements?: never;
-}
-
-type AccessGuardProps = AccessGuardPropsFeature | AccessGuardPropsAdmin;
-
-export default function AccessGuard(props: AccessGuardProps) {
-  const navigate = useNavigate();
-
-  // Admin level access check
-  if ('requiredLevel' in props && props.requiredLevel === 'admin') {
-    const { isAdmin, loading } = useAdminCheck();
-
-    useEffect(() => {
-      if (!loading && !isAdmin && props.redirectTo) {
-        console.log('[AccessGuard] Admin access denied, redirecting to:', props.redirectTo);
-        navigate(props.redirectTo, { replace: true });
-      }
-    }, [loading, isAdmin, props.redirectTo, navigate]);
-
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center p-8 min-h-[400px]">
-          <div className="text-center space-y-4">
-            <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-secondary-text">Verifying access...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (!isAdmin) {
-      return (
-        <div className="flex items-center justify-center p-8 min-h-[400px]">
-          <div className="bg-secondary border border-secondary rounded-xl p-8 max-w-md">
-            <div className="text-center space-y-6">
-              <div className="flex justify-center">
-                <div className="p-4 bg-red-500/20 rounded-full">
-                  <Lock className="w-12 h-12 text-red-400" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-primary-text mb-2">Access Prohibited</h3>
-                <p className="text-secondary-text">Unable to verify access</p>
-              </div>
-              <button
-                onClick={() => navigate(props.redirectTo || '/app')}
-                className="px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
-              >
-                Learn More
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return <>{props.children}</>;
-  }
-
-  // Feature-based access check (original behavior)
-  const {
-    featureCode,
-    children,
-    fallback,
-    showRequirements = true
-  } = props as AccessGuardPropsFeature;
-
+export default function AccessGuard({
+  featureCode,
+  children,
+  fallback,
+  showRequirements = true
+}: AccessGuardProps) {
   const { hasAccess, reason, requirements, loading } = useFeatureAccess(featureCode);
   const { profile } = useUserProfile();
 

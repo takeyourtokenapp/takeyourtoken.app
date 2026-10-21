@@ -48,6 +48,8 @@ async function getJupiterQuote(
   tokenOut: string,
   amount: number
 ): Promise<SwapQuote> {
+  const amountInLamports = Math.floor(amount * 1e9);
+
   const mockQuote: SwapQuote = {
     inputToken: tokenIn,
     outputToken: tokenOut,
@@ -114,7 +116,7 @@ export async function executeSwap(
   network: BlockchainNetwork,
   quote: SwapQuote,
   walletAddress: string,
-  _provider: any
+  provider: any
 ): Promise<SwapResult> {
   try {
     const mockTxHash = `0x${Math.random().toString(16).substring(2)}${Math.random().toString(16).substring(2)}`;

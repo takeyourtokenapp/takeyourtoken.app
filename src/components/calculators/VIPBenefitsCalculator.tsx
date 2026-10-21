@@ -55,13 +55,13 @@ export default function VIPBenefitsCalculator() {
   const results = calculateSavings();
 
   return (
-    <div className="bg-gradient-to-br from-navy-800 to-navy-900 border border-gold-500/20 rounded-xl p-6">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
           <Crown className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-white">VIP Benefits Calculator</h3>
+          <h3 className="text-xl font-bold">VIP Benefits Calculator</h3>
           <p className="text-sm text-gray-400">Calculate your potential savings</p>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function VIPBenefitsCalculator() {
             type="number"
             value={monthlyMaintenance}
             onChange={(e) => setMonthlyMaintenance(e.target.value)}
-            className="w-full px-4 py-2 bg-navy-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+            className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none"
             step="100"
           />
         </div>
@@ -93,8 +93,8 @@ export default function VIPBenefitsCalculator() {
                   onClick={() => setTier(tierKey)}
                   className={`px-3 py-2 rounded-lg border-2 transition-all ${
                     tier === tierKey
-                      ? 'border-gold-500 bg-gold-500/20'
-                      : 'border-gray-600 hover:border-gold-500/50'
+                      ? 'border-purple-500 bg-purple-500/20'
+                      : 'border-gray-700 hover:border-purple-700'
                   }`}
                 >
                   <div className={`font-semibold text-sm ${tierInfo.color}`}>
@@ -107,8 +107,8 @@ export default function VIPBenefitsCalculator() {
           </div>
         </div>
 
-        <div className="bg-navy-700/50 rounded-lg p-4 border border-gray-600">
-          <h4 className="font-semibold mb-3 text-white">Additional Discounts</h4>
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <h4 className="font-semibold mb-3">Additional Discounts</h4>
 
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">

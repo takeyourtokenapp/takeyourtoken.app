@@ -87,7 +87,7 @@ export default function MinerPerformanceWidget() {
 
   if (loading) {
     return (
-      <div className="bg-secondary rounded-xl border border-secondary p-6">
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700 p-6">
         <div className="flex items-center justify-center h-48">
           <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
         </div>
@@ -97,14 +97,14 @@ export default function MinerPerformanceWidget() {
 
   if (!performance || performance.totalMiners === 0) {
     return (
-      <div className="bg-secondary rounded-xl border border-secondary p-6">
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-amber-500/10 rounded-lg">
             <Cpu className="w-5 h-5 text-amber-400" />
           </div>
-          <h3 className="font-semibold text-primary-text">Miner Performance</h3>
+          <h3 className="font-semibold">Miner Performance</h3>
         </div>
-        <div className="flex flex-col items-center justify-center py-8 text-tertiary-text">
+        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
           <Cpu className="w-12 h-12 mb-3 opacity-50" />
           <p className="text-center mb-4">No miners found</p>
           <Link
@@ -119,15 +119,15 @@ export default function MinerPerformanceWidget() {
   }
 
   return (
-    <div className="bg-secondary rounded-xl border border-secondary p-6">
+    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-amber-500/10 rounded-lg">
             <BarChart3 className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-primary-text">Miner Performance</h3>
-            <p className="text-xs text-tertiary-text">Real-time mining statistics</p>
+            <h3 className="font-semibold">Miner Performance</h3>
+            <p className="text-xs text-gray-400">Real-time mining statistics</p>
           </div>
         </div>
         <Link
@@ -174,13 +174,13 @@ export default function MinerPerformanceWidget() {
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-sm text-tertiary-text">Top Performer</div>
-                <div className="font-semibold text-primary-text">{performance.topMiner.model || `Miner #${performance.topMiner.id.slice(0, 6)}`}</div>
+                <div className="text-sm text-gray-400">Top Performer</div>
+                <div className="font-semibold">{performance.topMiner.model || `Miner #${performance.topMiner.id.slice(0, 6)}`}</div>
               </div>
             </div>
             <div className="text-right">
               <div className="text-xl font-bold text-amber-400">{performance.topMiner.powerTh} TH/s</div>
-              <div className="text-sm text-tertiary-text">{performance.topMiner.efficiencyWTh} W/TH</div>
+              <div className="text-sm text-gray-400">{performance.topMiner.efficiencyWTh} W/TH</div>
             </div>
           </div>
         </div>
@@ -206,25 +206,25 @@ function StatBox({
 }) {
   const colorClasses = {
     amber: 'text-amber-400',
-    blue: 'text-blue-500 dark:text-blue-400',
-    green: 'text-green-500 dark:text-green-400',
-    cyan: 'text-cyan-500 dark:text-cyan-400'
+    blue: 'text-blue-400',
+    green: 'text-green-400',
+    cyan: 'text-cyan-400'
   };
 
   return (
-    <div className="bg-tertiary/50 rounded-lg p-3">
+    <div className="bg-gray-800/50 rounded-lg p-3">
       <div className="flex items-center justify-between mb-1">
         <Icon className={`w-4 h-4 ${colorClasses[color]}`} />
         {trend !== undefined && (
-          <span className={`text-xs flex items-center gap-0.5 ${trend >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+          <span className={`text-xs flex items-center gap-0.5 ${trend >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {Math.abs(trend)}%
           </span>
         )}
       </div>
       <div className={`font-bold ${colorClasses[color]}`}>{value}</div>
-      {subValue && <div className="text-xs text-tertiary-text">{subValue}</div>}
-      <div className="text-xs text-tertiary-text mt-1">{label}</div>
+      {subValue && <div className="text-xs text-gray-500">{subValue}</div>}
+      <div className="text-xs text-gray-400 mt-1">{label}</div>
     </div>
   );
 }

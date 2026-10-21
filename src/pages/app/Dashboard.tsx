@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -20,20 +19,17 @@ import {
   DollarSign,
   Flame
 } from 'lucide-react';
-import type { CustodialWallet, NFTMiner, DailyReward, Profile, VIPLevel } from '../../types/database';
+import type { CustodialWallet, NFTMiner, DailyReward, UserProfile, VIPLevel } from '../../types/database';
 import MinerPerformanceWidget from '../../components/MinerPerformanceWidget';
 import RewardsSummaryWidget from '../../components/RewardsSummaryWidget';
 import NetworkStatsWidget from '../../components/NetworkStatsWidget';
-import { AoiInsightFeed } from '../../components/AoiInsightFeed';
-import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const [wallets, setWallets] = useState<CustodialWallet[]>([]);
   const [miners, setMiners] = useState<NFTMiner[]>([]);
   const [recentRewards, setRecentRewards] = useState<DailyReward[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [vipLevel, setVIPLevel] = useState<VIPLevel | null>(null);
   const [serviceButtonCooldown, setServiceButtonCooldown] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -62,13 +58,12 @@ export default function Dashboard() {
         supabase
           .from('daily_rewards')
           .select('*')
-          .eq('user_id', user.id)
           .order('reward_date', { ascending: false })
           .limit(7),
         supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('*')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
           .maybeSingle()
       ]);
 
@@ -80,9 +75,9 @@ export default function Dashboard() {
         setProfile(profileRes.data);
 
         const vipRes = await supabase
-          .from('vip_tiers')
+          .from('vip_levels')
           .select('*')
-          .eq('level', profileRes.data.vip_level || 0)
+          .eq('level', profileRes.data.vip_level)
           .maybeSingle();
 
         if (vipRes.data) setVIPLevel(vipRes.data);
@@ -116,17 +111,17 @@ export default function Dashboard() {
 
     setPressingService(true);
     try {
-      const rewardAmount = vipLevel ? Number(vipLevel.service_button_reward || 10) : 10;
+      const rewardAmount = vipLevel ? parseFloat(vipLevel.service_button_reward) : 10;
 
       await supabase
-        .from('profiles')
+        .from('user_profiles')
         .update({
           service_button_last_pressed: new Date().toISOString(),
           service_button_presses: (profile.service_button_presses || 0) + 1
         })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
-      const tytWallet = wallets.find(w => w.currency === 'TYT');
+      const tytWallet = wallets.find(w => w.asset === 'TYT');
       if (tytWallet) {
         const newBalance = parseFloat(tytWallet.balance) + rewardAmount;
         await supabase
@@ -151,14 +146,14 @@ export default function Dashboard() {
     return `${hours}h ${minutes}m ${seconds}s`;
   };
 
-  const totalHashrate = miners.reduce((sum, miner) => sum + parseFloat(miner.hashrate as any), 0);
+  const totalHashrate = miners.reduce((sum, miner) => sum + miner.hashrate_th, 0);
   const avgEfficiency = miners.length > 0
-    ? miners.reduce((sum, miner) => sum + parseFloat(miner.efficiency as any), 0) / miners.length
+    ? miners.reduce((sum, miner) => sum + miner.efficiency_w_per_th, 0) / miners.length
     : 0;
 
   const todayReward = recentRewards[0];
   const weeklyRewards = recentRewards.reduce(
-    (sum, reward) => sum + parseFloat(reward.btc_amount),
+    (sum, reward) => sum + parseFloat(reward.net_btc),
     0
   );
 
@@ -167,8 +162,8 @@ export default function Dashboard() {
   ) : null;
 
   const vipProgress = profile && vipLevel && nextVipLevel ? (
-    ((Number(profile.total_spent || 0) - Number(vipLevel.min_spent || 0)) /
-      (Number(vipLevel.max_spent || 1) - Number(vipLevel.min_spent || 0))) * 100
+    ((profile.total_spent - parseFloat(vipLevel.min_spent)) /
+      (parseFloat(vipLevel.max_spent) - parseFloat(vipLevel.min_spent))) * 100
   ) : 0;
 
   if (loading) {
@@ -176,7 +171,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-          <div className="tyt-text-tertiary text-lg">{t('common.loading')}</div>
+          <div className="text-gray-400 text-lg">Loading dashboard...</div>
         </div>
       </div>
     );
@@ -187,10 +182,10 @@ export default function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-            {t('dashboard.title')}
+            Dashboard
           </h1>
-          <p className="tyt-text-tertiary">
-            {t('dashboard.welcome', { username: user?.email?.split('@')[0] || 'User' })}
+          <p className="text-gray-400">
+            Welcome back, <span className="text-white font-semibold">{user?.email?.split('@')[0]}</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -198,7 +193,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-lg border border-amber-500/30">
               <Crown className="w-5 h-5 text-amber-400" />
               <div>
-                <div className="text-xs tyt-text-tertiary">{t('dashboard.vipLevel')}</div>
+                <div className="text-xs text-gray-400">VIP Level</div>
                 <div className="font-bold text-amber-400">{vipLevel.level}</div>
               </div>
             </div>
@@ -207,78 +202,78 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="tyt-card p-6 hover:border-amber-500 dark:hover:border-amber-500 transition-all">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-amber-500/50 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="tyt-text-secondary text-sm font-medium">{t('dashboard.balances.btc')}</div>
-            <div className="p-2 bg-amber-100 dark:bg-amber-500/10 rounded-lg">
-              <Wallet className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="text-gray-400 text-sm font-medium">BTC Balance</div>
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Wallet className="w-5 h-5 text-amber-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">
-            {wallets.find(w => w.currency === 'BTC')?.balance || '0.00000000'}
+          <div className="text-2xl font-bold text-amber-400 mb-1">
+            {wallets.find(w => w.asset === 'BTC')?.balance || '0.00000000'}
           </div>
-          <div className="text-xs tyt-text-tertiary">
-            ≈ ${(parseFloat(wallets.find(w => w.currency === 'BTC')?.balance || '0') * 95000).toFixed(2)} USD
+          <div className="text-xs text-gray-500">
+            ≈ ${(parseFloat(wallets.find(w => w.asset === 'BTC')?.balance || '0') * 95000).toFixed(2)} USD
           </div>
         </div>
 
-        <div className="tyt-card p-6 hover:border-amber-500 dark:hover:border-amber-500 transition-all">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-amber-500/50 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="tyt-text-secondary text-sm font-medium">{t('dashboard.balances.tyt')}</div>
-            <div className="p-2 bg-amber-100 dark:bg-amber-500/10 rounded-lg">
-              <Flame className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="text-gray-400 text-sm font-medium">TYT Balance</div>
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Flame className="w-5 h-5 text-amber-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">
-            {parseFloat(wallets.find(w => w.currency === 'TYT')?.balance || '0').toFixed(0)}
+          <div className="text-2xl font-bold text-amber-400 mb-1">
+            {parseFloat(wallets.find(w => w.asset === 'TYT')?.balance || '0').toFixed(0)}
           </div>
-          <div className="text-xs tyt-text-tertiary">
-            {t('dashboard.stats.maintenanceNote')}
+          <div className="text-xs text-gray-500">
+            For maintenance discounts
           </div>
         </div>
 
-        <div className="tyt-card p-6 hover:border-amber-500 dark:hover:border-amber-500 transition-all">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-amber-500/50 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="tyt-text-secondary text-sm font-medium">{t('dashboard.stats.totalHashrate')}</div>
-            <div className="p-2 bg-amber-100 dark:bg-amber-500/10 rounded-lg">
-              <Cpu className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="text-gray-400 text-sm font-medium">Total Hashrate</div>
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Cpu className="w-5 h-5 text-amber-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">
+          <div className="text-2xl font-bold text-amber-400 mb-1">
             {totalHashrate.toFixed(2)}
           </div>
-          <div className="text-xs tyt-text-tertiary">
-            {miners.length} {miners.length !== 1 ? t('dashboard.stats.miners') : t('dashboard.stats.miner')}
+          <div className="text-xs text-gray-500">
+            {miners.length} active miner{miners.length !== 1 ? 's' : ''}
           </div>
         </div>
 
-        <div className="tyt-card p-6 hover:border-green-500 dark:hover:border-green-500 transition-all">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-amber-500/50 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="tyt-text-secondary text-sm font-medium">{t('dashboard.stats.dailyReward')}</div>
-            <div className="p-2 bg-green-100 dark:bg-green-500/10 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="text-gray-400 text-sm font-medium">Daily Reward</div>
+            <div className="p-2 bg-green-500/10 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-green-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-            {todayReward ? parseFloat(todayReward.btc_amount).toFixed(8) : '0.00000000'}
+          <div className="text-2xl font-bold text-green-400 mb-1">
+            {todayReward ? parseFloat(todayReward.net_btc).toFixed(8) : '0.00000000'}
           </div>
-          <div className="text-xs tyt-text-tertiary">
+          <div className="text-xs text-gray-500">
             Weekly: {weeklyRewards.toFixed(8)} BTC
           </div>
         </div>
 
-        <div className="tyt-card p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-all">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 hover:border-amber-500/50 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="tyt-text-secondary text-sm font-medium">{t('dashboard.stats.efficiency')}</div>
-            <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg">
-              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="text-gray-400 text-sm font-medium">Efficiency</div>
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Activity className="w-5 h-5 text-blue-400" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+          <div className="text-2xl font-bold text-blue-400 mb-1">
             {avgEfficiency.toFixed(1)}
           </div>
-          <div className="text-xs tyt-text-tertiary">
-            {t('dashboard.stats.efficiencyNote')}
+          <div className="text-xs text-gray-500">
+            W/TH avg efficiency
           </div>
         </div>
       </div>
@@ -292,12 +287,12 @@ export default function Dashboard() {
                   <Zap className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold tyt-text-primary">{t('dashboard.serviceButton.title')}</h3>
-                  <p className="text-sm tyt-text-tertiary">{t('dashboard.serviceButton.pressTo', { amount: vipLevel ? parseFloat(vipLevel.service_button_reward) : 10 })}</p>
+                  <h3 className="text-xl font-bold">Service Button</h3>
+                  <p className="text-sm text-gray-400">Press daily to earn {vipLevel ? parseFloat(vipLevel.service_button_reward) : 10} TYT</p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs tyt-text-tertiary">{t('dashboard.serviceButton.totalPresses')}</div>
+                <div className="text-xs text-gray-400">Total Presses</div>
                 <div className="text-2xl font-bold text-amber-400">{profile.service_button_presses || 0}</div>
               </div>
             </div>
@@ -307,48 +302,48 @@ export default function Dashboard() {
               disabled={serviceButtonCooldown > 0 || pressingService}
               className={`w-full py-6 rounded-xl font-bold text-lg transition-all ${
                 serviceButtonCooldown > 0
-                  ? 'bg-tertiary tyt-text-tertiary cursor-not-allowed'
+                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-xl hover:shadow-amber-500/50 hover:scale-[1.02] active:scale-[0.98] text-white'
               }`}
             >
               {pressingService ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                  {t('dashboard.serviceButton.processing')}
+                  Processing...
                 </span>
               ) : serviceButtonCooldown > 0 ? (
                 <span className="flex items-center justify-center gap-2">
                   <Calendar className="w-5 h-5" />
-                  {t('dashboard.serviceButton.availableIn', { time: formatCooldown(serviceButtonCooldown) })}
+                  Available in {formatCooldown(serviceButtonCooldown)}
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   <Zap className="w-6 h-6" />
-                  {t('dashboard.serviceButton.pressNow')}
+                  Press Now to Earn TYT
                 </span>
               )}
             </button>
           </div>
 
           {vipLevel && nextVipLevel && (
-            <div className="tyt-card p-6">
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-amber-100 dark:bg-amber-500/20 rounded-xl">
-                  <Crown className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <div className="p-3 bg-amber-500/20 rounded-xl">
+                  <Crown className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold tyt-text-primary">VIP Progress</h3>
-                  <p className="text-sm tyt-text-secondary">Level {vipLevel.level} → {nextVipLevel}</p>
+                  <h3 className="text-xl font-bold">VIP Progress</h3>
+                  <p className="text-sm text-gray-400">Level {vipLevel.level} → {nextVipLevel}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="tyt-text-secondary">Progress</span>
-                    <span className="font-bold text-amber-600 dark:text-amber-400">{Math.min(100, vipProgress).toFixed(1)}%</span>
+                    <span className="text-gray-400">Progress</span>
+                    <span className="font-bold text-amber-400">{Math.min(100, vipProgress).toFixed(1)}%</span>
                   </div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
                       style={{ width: `${Math.min(100, vipProgress)}%` }}
@@ -357,16 +352,16 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
-                    <div className="text-xs tyt-text-secondary mb-1">Current Benefits</div>
-                    <div className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                      {Number(vipLevel.maintenance_discount_percent || 0).toFixed(0)}% Discount
+                  <div className="p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-xs text-gray-400 mb-1">Current Benefits</div>
+                    <div className="text-sm font-semibold text-amber-400">
+                      {parseFloat(vipLevel.maintenance_discount).toFixed(0)}% Discount
                     </div>
                   </div>
-                  <div className="p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
-                    <div className="text-xs tyt-text-secondary mb-1">Total Spent</div>
-                    <div className="text-sm font-semibold tyt-text-primary">
-                      ${Number(profile.total_spent || 0).toFixed(2)}
+                  <div className="p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-xs text-gray-400 mb-1">Total Spent</div>
+                    <div className="text-sm font-semibold text-white">
+                      ${parseFloat(profile.total_spent).toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -391,13 +386,13 @@ export default function Dashboard() {
             </div>
             <div className="flex-1">
               <h3 className="text-2xl font-bold text-amber-400 mb-2">Start Your Mining Journey</h3>
-              <p className="tyt-text-secondary mb-4 max-w-2xl">
+              <p className="text-gray-300 mb-4 max-w-2xl">
                 You don't have any active miners yet. Purchase your first NFT miner from the marketplace to start earning daily BTC rewards. Each miner provides stable, passive income with transparent ROI calculations.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   to="/app/marketplace"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg font-semibold text-white hover:shadow-xl hover:shadow-amber-500/50 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg font-semibold hover:shadow-xl hover:shadow-amber-500/50 transition-all"
                 >
                   <ShoppingCart size={20} />
                   Browse Marketplace
@@ -405,7 +400,7 @@ export default function Dashboard() {
                 </Link>
                 <Link
                   to="/app/academy"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-tertiary rounded-lg font-semibold tyt-text-primary hover:bg-secondary transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 rounded-lg font-semibold hover:bg-gray-600 transition-all"
                 >
                   Learn More
                 </Link>
@@ -415,36 +410,27 @@ export default function Dashboard() {
         </div>
       )}
 
-      <WidgetErrorBoundary widgetName="Network Stats">
-        <NetworkStatsWidget />
-      </WidgetErrorBoundary>
+      <NetworkStatsWidget />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <WidgetErrorBoundary widgetName="Miner Performance">
-          <MinerPerformanceWidget />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary widgetName="Rewards Summary">
-          <RewardsSummaryWidget />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary widgetName="Aoi Insights">
-          <AoiInsightFeed />
-        </WidgetErrorBoundary>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MinerPerformanceWidget />
+        <RewardsSummaryWidget />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="tyt-card p-6">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-500/10 rounded-lg">
-                <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <DollarSign className="w-5 h-5 text-green-400" />
               </div>
-              <h2 className="text-xl font-bold tyt-text-primary">{t('dashboard.recentRewards')}</h2>
+              <h2 className="text-xl font-bold">Recent Rewards</h2>
             </div>
             <Link
               to="/app/rewards"
-              className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 flex items-center gap-1"
+              className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1"
             >
-              {t('common.view')} {t('common.all')}
+              View All
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -454,12 +440,12 @@ export default function Dashboard() {
               {recentRewards.map((reward) => (
                 <div
                   key={reward.id}
-                  className="p-4 bg-tertiary/50 rounded-lg hover:bg-secondary transition-all border border-secondary"
+                  className="p-4 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-all border border-gray-700/50"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 tyt-text-tertiary" />
-                      <div className="text-sm font-semibold tyt-text-primary">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <div className="text-sm font-semibold">
                         {new Date(reward.reward_date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -467,11 +453,11 @@ export default function Dashboard() {
                         })}
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-green-500 dark:text-green-400">
+                    <div className="text-sm font-bold text-green-400">
                       +{parseFloat(reward.net_btc).toFixed(8)} BTC
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs tyt-text-tertiary">
+                  <div className="flex items-center justify-between text-xs text-gray-400">
                     <span>Gross: {parseFloat(reward.gross_btc).toFixed(8)} BTC</span>
                     <span>Maint: {parseFloat(reward.maintenance_cost_btc).toFixed(8)} BTC</span>
                   </div>
@@ -479,26 +465,26 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 tyt-text-tertiary">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <TrendingUp className="w-12 h-12 mb-3 opacity-50" />
               <p className="text-center">No rewards yet.<br />Start mining to earn BTC!</p>
             </div>
           )}
         </div>
 
-        <div className="bg-secondary rounded-xl p-6 border border-secondary">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-500/10 rounded-lg">
                 <Cpu className="w-5 h-5 text-amber-400" />
               </div>
-              <h2 className="text-xl font-bold tyt-text-primary">{t('dashboard.myMiners')}</h2>
+              <h2 className="text-xl font-bold">My Miners</h2>
             </div>
             <Link
               to="/app/miners"
               className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1"
             >
-              {t('dashboard.manageAll')}
+              Manage All
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -508,41 +494,41 @@ export default function Dashboard() {
               {miners.slice(0, 3).map((miner) => (
                 <div
                   key={miner.id}
-                  className="p-4 bg-tertiary/50 rounded-lg hover:bg-secondary transition-all border border-secondary"
+                  className="p-4 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-all border border-gray-700/50"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <div className="font-semibold tyt-text-primary">Miner #{miner.id.slice(0, 8)}</div>
+                      <div className="font-semibold">Miner #{miner.id.slice(0, 8)}</div>
                     </div>
-                    <div className="px-3 py-1 bg-green-500/20 text-green-500 dark:text-green-400 text-xs rounded-full font-semibold uppercase">
+                    <div className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-semibold uppercase">
                       {miner.status}
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-2 bg-primary/50 rounded">
-                      <div className="text-xs tyt-text-tertiary mb-1">Hashrate</div>
-                      <div className="font-bold text-amber-400">{parseFloat(miner.hashrate as any).toFixed(2)} TH/s</div>
+                    <div className="text-center p-2 bg-gray-900/50 rounded">
+                      <div className="text-xs text-gray-400 mb-1">Hashrate</div>
+                      <div className="font-bold text-amber-400">{miner.hashrate_th} TH/s</div>
                     </div>
-                    <div className="text-center p-2 bg-primary/50 rounded">
-                      <div className="text-xs tyt-text-tertiary mb-1">Efficiency</div>
-                      <div className="font-bold text-blue-500 dark:text-blue-400">{parseFloat(miner.efficiency as any).toFixed(2)} W/TH</div>
+                    <div className="text-center p-2 bg-gray-900/50 rounded">
+                      <div className="text-xs text-gray-400 mb-1">Efficiency</div>
+                      <div className="font-bold text-blue-400">{miner.efficiency_w_per_th} W/TH</div>
                     </div>
-                    <div className="text-center p-2 bg-primary/50 rounded">
-                      <div className="text-xs tyt-text-tertiary mb-1">Power</div>
-                      <div className="font-bold tyt-text-primary">Lv.{miner.power_level}</div>
+                    <div className="text-center p-2 bg-gray-900/50 rounded">
+                      <div className="text-xs text-gray-400 mb-1">Power</div>
+                      <div className="font-bold text-white">Lv.{miner.power_level}</div>
                     </div>
                   </div>
                 </div>
               ))}
               {miners.length > 3 && (
-                <div className="text-center text-sm tyt-text-tertiary py-2">
+                <div className="text-center text-sm text-gray-400 py-2">
                   +{miners.length - 3} more miner{miners.length - 3 !== 1 ? 's' : ''}
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 tyt-text-tertiary">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <Cpu className="w-12 h-12 mb-3 opacity-50" />
               <p className="text-center">No miners yet.<br />Purchase your first miner!</p>
             </div>
@@ -550,53 +536,53 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
-        <h2 className="text-xl font-bold tyt-text-primary mb-6 flex items-center gap-2">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
+        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <Activity className="w-6 h-6 text-amber-400" />
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/app/marketplace"
-            className="group p-6 bg-tertiary/50 rounded-xl hover:from-amber-500/10 hover:to-orange-500/10 border border-secondary hover:border-amber-500/50 transition-all"
+            className="group p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl hover:from-amber-500/10 hover:to-orange-500/10 border border-gray-700 hover:border-amber-500/50 transition-all"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-all">
                 <ShoppingCart className="w-6 h-6 text-amber-400" />
               </div>
               <div>
-                <div className="font-bold text-lg mb-1 tyt-text-primary">Buy Miners</div>
-                <div className="text-sm tyt-text-tertiary">Browse marketplace for NFT miners</div>
+                <div className="font-bold text-lg mb-1">Buy Miners</div>
+                <div className="text-sm text-gray-400">Browse marketplace for NFT miners</div>
               </div>
             </div>
           </Link>
 
           <Link
             to="/app/academy"
-            className="group p-6 bg-tertiary/50 rounded-xl hover:from-blue-500/10 hover:to-cyan-500/10 border border-secondary hover:border-blue-500/50 transition-all"
+            className="group p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl hover:from-blue-500/10 hover:to-cyan-500/10 border border-gray-700 hover:border-blue-500/50 transition-all"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-all">
-                <Award className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+                <Award className="w-6 h-6 text-blue-400" />
               </div>
               <div>
-                <div className="font-bold text-lg mb-1 tyt-text-primary">Learn & Earn</div>
-                <div className="text-sm tyt-text-tertiary">Complete courses for TYT rewards</div>
+                <div className="font-bold text-lg mb-1">Learn & Earn</div>
+                <div className="text-sm text-gray-400">Complete courses for TYT rewards</div>
               </div>
             </div>
           </Link>
 
           <Link
             to="/app/wallet"
-            className="group p-6 bg-tertiary/50 rounded-xl hover:from-green-500/10 hover:to-emerald-500/10 border border-secondary hover:border-green-500/50 transition-all"
+            className="group p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl hover:from-green-500/10 hover:to-emerald-500/10 border border-gray-700 hover:border-green-500/50 transition-all"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 bg-green-500/10 rounded-xl group-hover:bg-green-500/20 transition-all">
-                <Wallet className="w-6 h-6 text-green-500 dark:text-green-400" />
+                <Wallet className="w-6 h-6 text-green-400" />
               </div>
               <div>
-                <div className="font-bold text-lg mb-1 tyt-text-primary">Manage Wallet</div>
-                <div className="text-sm tyt-text-tertiary">Deposits, withdrawals & swaps</div>
+                <div className="font-bold text-lg mb-1">Manage Wallet</div>
+                <div className="text-sm text-gray-400">Deposits, withdrawals & swaps</div>
               </div>
             </div>
           </Link>
@@ -604,32 +590,32 @@ export default function Dashboard() {
       </div>
 
       {profile && (
-        <div className="bg-secondary rounded-xl p-6 border border-secondary">
-          <h2 className="text-xl font-bold tyt-text-primary mb-6 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             <Users className="w-6 h-6 text-amber-400" />
             Account Overview
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="p-4 bg-tertiary/50 rounded-lg">
-              <div className="text-sm tyt-text-tertiary mb-1">Member Since</div>
-              <div className="font-bold tyt-text-primary">
+            <div className="p-4 bg-gray-800/50 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">Member Since</div>
+              <div className="font-bold text-white">
                 {new Date(profile.created_at).toLocaleDateString('en-US', {
                   month: 'short',
                   year: 'numeric'
                 })}
               </div>
             </div>
-            <div className="p-4 bg-tertiary/50 rounded-lg">
-              <div className="text-sm tyt-text-tertiary mb-1">Total Spent</div>
+            <div className="p-4 bg-gray-800/50 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">Total Spent</div>
               <div className="font-bold text-amber-400">${parseFloat(profile.total_spent).toFixed(2)}</div>
             </div>
-            <div className="p-4 bg-tertiary/50 rounded-lg">
-              <div className="text-sm tyt-text-tertiary mb-1">Referrals</div>
-              <div className="font-bold text-green-500 dark:text-green-400">{profile.referral_count || 0}</div>
+            <div className="p-4 bg-gray-800/50 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">Referrals</div>
+              <div className="font-bold text-green-400">{profile.referral_count || 0}</div>
             </div>
-            <div className="p-4 bg-tertiary/50 rounded-lg">
-              <div className="text-sm tyt-text-tertiary mb-1">KYC Status</div>
-              <div className={`font-bold ${profile.kyc_status === 'verified' ? 'text-green-500 dark:text-green-400' : 'text-yellow-500 dark:text-yellow-400'}`}>
+            <div className="p-4 bg-gray-800/50 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">KYC Status</div>
+              <div className={`font-bold ${profile.kyc_status === 'verified' ? 'text-green-400' : 'text-yellow-400'}`}>
                 {profile.kyc_status || 'Pending'}
               </div>
             </div>

@@ -2,256 +2,326 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title AcademyVault
- * @notice TYT v3 Academy Vault - Digital-Interactive-Technology-Blockchain Crypto Academia Treasury
- * @dev Receives ERC20 and native tokens, tracks totals by source category.
- *      Only ACADEMY_ADMIN_ROLE can withdraw funds (intended for academy multisig).
- *      Funds educational content, student rewards, certificates, and operations.
+ * @notice Digital-Interactive-Technology-Blockchain Crypto Academia Vault
+ * @dev Receives 10% of all TYT ecosystem fees for educational initiatives
  *
  * Purpose:
- * - Fund educational content creation (courses, videos, tutorials)
- * - Reward students for quiz completion and achievements
+ * - Fund educational content creation
+ * - Reward students for quiz completion
  * - Issue certificates and achievement NFTs
- * - Support academy operations and staff
- * - Sponsor learning events, workshops, and webinars
+ * - Support academy operations
+ * - Sponsor learning events and workshops
  */
-contract AcademyVault is AccessControl, ReentrancyGuard {
+contract AcademyVault is AccessControl, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant ACADEMY_ADMIN_ROLE = keccak256("ACADEMY_ADMIN_ROLE");
-    bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
+    bytes32 public constant FUND_MANAGER_ROLE = keccak256("FUND_MANAGER_ROLE");
+    bytes32 public constant EDUCATOR_ROLE = keccak256("EDUCATOR_ROLE");
+    bytes32 public constant WITHDRAWAL_ROLE = keccak256("WITHDRAWAL_ROLE");
 
-    struct TokenStats {
-        uint256 totalReceived;
-        uint256 totalWithdrawn;
-        uint256 currentBalance;
+    struct RewardDistribution {
+        address recipient;
+        uint256 amount;
+        string reason;
+        uint256 timestamp;
+        bool executed;
     }
 
-    struct SourceStats {
-        uint256 totalReceived;
-        uint256 donationCount;
+    struct Budget {
+        uint256 contentCreation;
+        uint256 studentRewards;
+        uint256 certificates;
+        uint256 operations;
+        uint256 events;
+        uint256 reserved;
     }
 
-    mapping(address => TokenStats) public tokenStats;
-    mapping(bytes32 => mapping(address => SourceStats)) public sourceStats;
+    mapping(address => uint256) public totalRewardsReceived;
+    mapping(uint256 => RewardDistribution) public distributions;
+    uint256 public distributionCount;
 
-    address[] private _trackedTokens;
-    mapping(address => bool) private _isTracked;
+    Budget public budget;
+    uint256 public totalReceived;
+    uint256 public totalDistributed;
 
-    bytes32[] private _sourceCategoriesList;
-    mapping(bytes32 => bool) private _sourceExists;
-
-    event FundingReceived(
-        address indexed token,
-        address indexed from,
-        uint256 amount,
-        bytes32 indexed sourceKey,
-        string memo
-    );
-
-    event NativeFundingReceived(
-        address indexed from,
-        uint256 amount,
-        bytes32 indexed sourceKey,
-        string memo
-    );
-
-    event FundingWithdrawn(
-        address indexed token,
-        address indexed to,
+    event FundsReceived(address indexed from, uint256 amount, string source);
+    event RewardDistributed(
+        uint256 indexed distributionId,
+        address indexed recipient,
         uint256 amount,
         string reason
     );
+    event BudgetUpdated(
+        uint256 contentCreation,
+        uint256 studentRewards,
+        uint256 certificates,
+        uint256 operations,
+        uint256 events,
+        uint256 reserved
+    );
+    event FundsWithdrawn(address indexed to, uint256 amount, string purpose);
 
-    error InsufficientBalance(address token, uint256 requested, uint256 available);
-    error ZeroAmount();
-    error TransferFailed();
+    error InsufficientBalance(uint256 requested, uint256 available);
+    error InvalidAmount();
+    error ZeroAddress();
+    error DistributionAlreadyExecuted();
 
-    constructor(address academyAdmin) {
-        _grantRole(DEFAULT_ADMIN_ROLE, academyAdmin);
-        _grantRole(ACADEMY_ADMIN_ROLE, academyAdmin);
+    constructor(address admin, address fundManager) {
+        if (admin == address(0) || fundManager == address(0)) {
+            revert ZeroAddress();
+        }
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(FUND_MANAGER_ROLE, fundManager);
+        _grantRole(EDUCATOR_ROLE, admin);
+        _grantRole(WITHDRAWAL_ROLE, admin);
+
+        // Initialize budget allocations (in basis points, 10000 = 100%)
+        budget = Budget({
+            contentCreation: 3000,  // 30% - Create courses, videos, tutorials
+            studentRewards: 4000,   // 40% - Quiz rewards, achievement bonuses
+            certificates: 1000,     // 10% - NFT certificates, badges
+            operations: 1500,       // 15% - Platform maintenance, staff
+            events: 500,            // 5% - Workshops, webinars, conferences
+            reserved: 0             // 0% - Emergency fund
+        });
     }
 
+    /**
+     * @notice Receive funds from fee splits
+     */
     receive() external payable {
-        _recordNativeFunding(msg.sender, msg.value, keccak256("native.direct"), "");
+        _recordFundsReceived(msg.sender, msg.value, "fee_split");
     }
 
-    function fundNative(bytes32 sourceKey, string calldata memo) external payable nonReentrant {
-        if (msg.value == 0) revert ZeroAmount();
-        _recordNativeFunding(msg.sender, msg.value, sourceKey, memo);
+    /**
+     * @notice Receive funds with source tracking
+     */
+    function receiveFunds(string calldata source) external payable {
+        _recordFundsReceived(msg.sender, msg.value, source);
     }
 
-    function _recordNativeFunding(
-        address from,
-        uint256 amount,
-        bytes32 sourceKey,
-        string memory memo
-    ) internal {
-        address nativeToken = address(0);
+    function _recordFundsReceived(address from, uint256 amount, string memory source) internal {
+        if (amount == 0) revert InvalidAmount();
 
-        if (!_isTracked[nativeToken]) {
-            _trackedTokens.push(nativeToken);
-            _isTracked[nativeToken] = true;
-        }
+        totalReceived += amount;
 
-        tokenStats[nativeToken].totalReceived += amount;
-        tokenStats[nativeToken].currentBalance += amount;
-
-        _recordSource(sourceKey, nativeToken, amount);
-
-        emit NativeFundingReceived(from, amount, sourceKey, memo);
+        emit FundsReceived(from, amount, source);
     }
 
-    function fundERC20(
-        address token,
-        uint256 amount,
-        bytes32 sourceKey,
-        string calldata memo
-    ) external nonReentrant {
-        if (amount == 0) revert ZeroAmount();
-
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-
-        if (!_isTracked[token]) {
-            _trackedTokens.push(token);
-            _isTracked[token] = true;
-        }
-
-        tokenStats[token].totalReceived += amount;
-        tokenStats[token].currentBalance += amount;
-
-        _recordSource(sourceKey, token, amount);
-
-        emit FundingReceived(token, msg.sender, amount, sourceKey, memo);
-    }
-
-    function depositFromFee(
-        address token,
-        uint256 amount,
-        bytes32 sourceKey
-    ) external onlyRole(DEPOSITOR_ROLE) nonReentrant {
-        if (amount == 0) revert ZeroAmount();
-
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-
-        if (!_isTracked[token]) {
-            _trackedTokens.push(token);
-            _isTracked[token] = true;
-        }
-
-        tokenStats[token].totalReceived += amount;
-        tokenStats[token].currentBalance += amount;
-
-        _recordSource(sourceKey, token, amount);
-
-        emit FundingReceived(token, msg.sender, amount, sourceKey, "fee_distribution");
-    }
-
-    function _recordSource(bytes32 sourceKey, address token, uint256 amount) internal {
-        if (!_sourceExists[sourceKey]) {
-            _sourceCategoriesList.push(sourceKey);
-            _sourceExists[sourceKey] = true;
-        }
-
-        sourceStats[sourceKey][token].totalReceived += amount;
-        sourceStats[sourceKey][token].donationCount += 1;
-    }
-
-    function withdraw(
-        address token,
-        address to,
+    /**
+     * @notice Distribute student rewards (quiz completion, achievements)
+     * @dev Can be called by educators to reward students
+     */
+    function distributeStudentReward(
+        address student,
         uint256 amount,
         string calldata reason
-    ) external onlyRole(ACADEMY_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) revert ZeroAmount();
-
-        if (token == address(0)) {
-            if (address(this).balance < amount) {
-                revert InsufficientBalance(token, amount, address(this).balance);
-            }
-
-            tokenStats[token].totalWithdrawn += amount;
-            tokenStats[token].currentBalance -= amount;
-
-            (bool success, ) = to.call{value: amount}("");
-            if (!success) revert TransferFailed();
-        } else {
-            uint256 balance = IERC20(token).balanceOf(address(this));
-            if (balance < amount) {
-                revert InsufficientBalance(token, amount, balance);
-            }
-
-            tokenStats[token].totalWithdrawn += amount;
-            tokenStats[token].currentBalance -= amount;
-
-            IERC20(token).safeTransfer(to, amount);
+    ) external onlyRole(EDUCATOR_ROLE) nonReentrant whenNotPaused returns (uint256 distributionId) {
+        if (student == address(0)) revert ZeroAddress();
+        if (amount == 0) revert InvalidAmount();
+        if (address(this).balance < amount) {
+            revert InsufficientBalance(amount, address(this).balance);
         }
 
-        emit FundingWithdrawn(token, to, amount, reason);
+        distributionId = distributionCount++;
+
+        distributions[distributionId] = RewardDistribution({
+            recipient: student,
+            amount: amount,
+            reason: reason,
+            timestamp: block.timestamp,
+            executed: false
+        });
+
+        _executeDistribution(distributionId);
     }
 
-    function getTokenStats(address token) external view returns (
-        uint256 totalReceived,
-        uint256 totalWithdrawn,
-        uint256 currentBalance
-    ) {
-        TokenStats storage stats = tokenStats[token];
-        return (stats.totalReceived, stats.totalWithdrawn, stats.currentBalance);
-    }
+    /**
+     * @notice Batch distribute rewards to multiple students
+     */
+    function batchDistributeRewards(
+        address[] calldata students,
+        uint256[] calldata amounts,
+        string calldata reason
+    ) external onlyRole(EDUCATOR_ROLE) nonReentrant whenNotPaused {
+        if (students.length != amounts.length) revert InvalidAmount();
 
-    function getSourceStats(bytes32 sourceKey, address token) external view returns (
-        uint256 totalReceived,
-        uint256 donationCount
-    ) {
-        SourceStats storage stats = sourceStats[sourceKey][token];
-        return (stats.totalReceived, stats.donationCount);
-    }
-
-    function getTrackedTokens() external view returns (address[] memory) {
-        return _trackedTokens;
-    }
-
-    function getSourceCategories() external view returns (bytes32[] memory) {
-        return _sourceCategoriesList;
-    }
-
-    function getActualBalance(address token) external view returns (uint256) {
-        if (token == address(0)) {
-            return address(this).balance;
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < amounts.length; i++) {
+            totalAmount += amounts[i];
         }
-        return IERC20(token).balanceOf(address(this));
+
+        if (address(this).balance < totalAmount) {
+            revert InsufficientBalance(totalAmount, address(this).balance);
+        }
+
+        for (uint256 i = 0; i < students.length; i++) {
+            if (students[i] == address(0)) revert ZeroAddress();
+            if (amounts[i] == 0) continue;
+
+            uint256 distributionId = distributionCount++;
+
+            distributions[distributionId] = RewardDistribution({
+                recipient: students[i],
+                amount: amounts[i],
+                reason: reason,
+                timestamp: block.timestamp,
+                executed: false
+            });
+
+            _executeDistribution(distributionId);
+        }
     }
 
-    function DEPOSIT_FEE_ACADEMY_KEY() external pure returns (bytes32) {
-        return keccak256("deposit_fee.academy");
+    function _executeDistribution(uint256 distributionId) internal {
+        RewardDistribution storage dist = distributions[distributionId];
+
+        if (dist.executed) revert DistributionAlreadyExecuted();
+
+        dist.executed = true;
+        totalRewardsReceived[dist.recipient] += dist.amount;
+        totalDistributed += dist.amount;
+
+        (bool success, ) = dist.recipient.call{value: dist.amount}("");
+        require(success, "Transfer failed");
+
+        emit RewardDistributed(distributionId, dist.recipient, dist.amount, dist.reason);
     }
 
-    function MARKETPLACE_FEE_ACADEMY_KEY() external pure returns (bytes32) {
-        return keccak256("marketplace_fee.academy");
+    /**
+     * @notice Update budget allocations
+     * @dev All percentages must sum to 10000 (100%)
+     */
+    function updateBudget(
+        uint256 contentCreation,
+        uint256 studentRewards,
+        uint256 certificates,
+        uint256 operations,
+        uint256 events,
+        uint256 reserved
+    ) external onlyRole(FUND_MANAGER_ROLE) {
+        uint256 total = contentCreation + studentRewards + certificates + operations + events + reserved;
+        require(total == 10000, "Budget must sum to 100%");
+
+        budget = Budget({
+            contentCreation: contentCreation,
+            studentRewards: studentRewards,
+            certificates: certificates,
+            operations: operations,
+            events: events,
+            reserved: reserved
+        });
+
+        emit BudgetUpdated(contentCreation, studentRewards, certificates, operations, events, reserved);
     }
 
-    function MINT_FEE_ACADEMY_KEY() external pure returns (bytes32) {
-        return keccak256("mint_fee.academy");
+    /**
+     * @notice Withdraw funds for specific purpose
+     * @dev Requires WITHDRAWAL_ROLE
+     */
+    function withdrawForPurpose(
+        address payable to,
+        uint256 amount,
+        string calldata purpose
+    ) external onlyRole(WITHDRAWAL_ROLE) nonReentrant {
+        if (to == address(0)) revert ZeroAddress();
+        if (amount == 0) revert InvalidAmount();
+        if (address(this).balance < amount) {
+            revert InsufficientBalance(amount, address(this).balance);
+        }
+
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "Withdrawal failed");
+
+        emit FundsWithdrawn(to, amount, purpose);
     }
 
-    function UPGRADE_FEE_ACADEMY_KEY() external pure returns (bytes32) {
-        return keccak256("upgrade_fee.academy");
+    /**
+     * @notice Withdraw ERC20 tokens
+     */
+    function withdrawToken(
+        IERC20 token,
+        address to,
+        uint256 amount,
+        string calldata purpose
+    ) external onlyRole(WITHDRAWAL_ROLE) nonReentrant {
+        if (to == address(0)) revert ZeroAddress();
+        if (amount == 0) revert InvalidAmount();
+
+        token.safeTransfer(to, amount);
+
+        emit FundsWithdrawn(to, amount, purpose);
     }
 
-    function USER_DIRECT_KEY() external pure returns (bytes32) {
-        return keccak256("user.direct");
+    /**
+     * @notice Get vault statistics
+     */
+    function getVaultStats() external view returns (
+        uint256 currentBalance,
+        uint256 totalRec,
+        uint256 totalDist,
+        uint256 totalStudentsRewarded,
+        Budget memory currentBudget
+    ) {
+        return (
+            address(this).balance,
+            totalReceived,
+            totalDistributed,
+            distributionCount,
+            budget
+        );
     }
 
-    function CERTIFICATE_PURCHASE_KEY() external pure returns (bytes32) {
-        return keccak256("certificate.purchase");
+    /**
+     * @notice Get student's total rewards
+     */
+    function getStudentRewards(address student) external view returns (uint256) {
+        return totalRewardsReceived[student];
     }
 
-    function COURSE_ENROLLMENT_KEY() external pure returns (bytes32) {
-        return keccak256("course.enrollment");
+    /**
+     * @notice Get distribution details
+     */
+    function getDistribution(uint256 distributionId) external view returns (RewardDistribution memory) {
+        return distributions[distributionId];
+    }
+
+    /**
+     * @notice Calculate budget allocations for current balance
+     */
+    function getBudgetAllocations() external view returns (
+        uint256 contentCreationAmount,
+        uint256 studentRewardsAmount,
+        uint256 certificatesAmount,
+        uint256 operationsAmount,
+        uint256 eventsAmount,
+        uint256 reservedAmount
+    ) {
+        uint256 balance = address(this).balance;
+
+        return (
+            (balance * budget.contentCreation) / 10000,
+            (balance * budget.studentRewards) / 10000,
+            (balance * budget.certificates) / 10000,
+            (balance * budget.operations) / 10000,
+            (balance * budget.events) / 10000,
+            (balance * budget.reserved) / 10000
+        );
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 }

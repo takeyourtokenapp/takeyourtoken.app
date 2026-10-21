@@ -81,11 +81,11 @@ export default function Leaderboard() {
       .from('nft_miners')
       .select(`
         owner_id,
-        hashrate,
-        profiles!nft_miners_owner_id_fkey (
-          id,
+        power_th,
+        user_profiles!nft_miners_owner_id_fkey (
+          user_id,
           username,
-          email
+          avatar_url
         )
       `)
       .eq('status', 'active');
@@ -97,12 +97,12 @@ export default function Leaderboard() {
       if (!acc[userId]) {
         acc[userId] = {
           user_id: userId,
-          username: miner.profiles?.username || miner.profiles?.email?.split('@')[0] || 'Anonymous',
-          avatar_url: undefined,
+          username: miner.user_profiles?.username || 'Anonymous',
+          avatar_url: miner.user_profiles?.avatar_url,
           value: 0
         };
       }
-      acc[userId].value += parseFloat(miner.hashrate);
+      acc[userId].value += parseFloat(miner.power_th);
       return acc;
     }, {});
 
@@ -121,11 +121,11 @@ export default function Leaderboard() {
       .from('daily_rewards')
       .select(`
         user_id,
-        btc_amount,
-        profiles!daily_rewards_user_id_fkey (
-          id,
+        net_btc_rewarded,
+        user_profiles!daily_rewards_user_id_fkey (
+          user_id,
           username,
-          email
+          avatar_url
         )
       `);
 
@@ -136,12 +136,12 @@ export default function Leaderboard() {
       if (!acc[userId]) {
         acc[userId] = {
           user_id: userId,
-          username: reward.profiles?.username || reward.profiles?.email?.split('@')[0] || 'Anonymous',
-          avatar_url: undefined,
+          username: reward.user_profiles?.username || 'Anonymous',
+          avatar_url: reward.user_profiles?.avatar_url,
           value: 0
         };
       }
-      acc[userId].value += parseFloat(reward.btc_amount);
+      acc[userId].value += parseFloat(reward.net_btc_rewarded);
       return acc;
     }, {});
 
@@ -161,10 +161,10 @@ export default function Leaderboard() {
       .select(`
         user_id,
         total_donated,
-        profiles!charity_stakes_user_id_fkey (
-          id,
+        user_profiles!charity_stakes_user_id_fkey (
+          user_id,
           username,
-          email
+          avatar_url
         )
       `)
       .eq('status', 'active');
@@ -176,8 +176,8 @@ export default function Leaderboard() {
       if (!acc[userId]) {
         acc[userId] = {
           user_id: userId,
-          username: stake.profiles?.username || stake.profiles?.email?.split('@')[0] || 'Anonymous',
-          avatar_url: undefined,
+          username: stake.user_profiles?.username || 'Anonymous',
+          avatar_url: stake.user_profiles?.avatar_url,
           value: 0
         };
       }
@@ -196,61 +196,37 @@ export default function Leaderboard() {
   };
 
   const loadReferralsLeaderboard = async () => {
-    // Count referrals per user from referral_earnings
-    const { data: earnings, error } = await supabase
-      .from('referral_earnings')
-      .select('referrer_id');
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('user_id, username, avatar_url, total_referrals')
+      .order('total_referrals', { ascending: false })
+      .limit(100);
 
-    if (error || !earnings) return [];
+    if (error || !data) return [];
 
-    // Aggregate counts
-    const referralCounts = earnings.reduce((acc: any, earning: any) => {
-      const referrerId = earning.referrer_id;
-      acc[referrerId] = (acc[referrerId] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Get user details
-    const userIds = Object.keys(referralCounts);
-    if (userIds.length === 0) return [];
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, username, email')
-      .in('id', userIds);
-
-    if (!profiles) return [];
-
-    const leaderboardData = profiles.map((profile: any) => ({
-      user_id: profile.id,
-      username: profile.username || profile.email?.split('@')[0] || 'Anonymous',
-      avatar_url: undefined,
-      value: referralCounts[profile.id] || 0
+    return data.map((entry, index) => ({
+      user_id: entry.user_id,
+      username: entry.username || 'Anonymous',
+      avatar_url: entry.avatar_url,
+      rank: index + 1,
+      value: entry.total_referrals || 0,
+      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : undefined
     }));
-
-    return leaderboardData
-      .sort((a: any, b: any) => b.value - a.value)
-      .slice(0, 100)
-      .map((entry: any, index) => ({
-        ...entry,
-        rank: index + 1,
-        badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : undefined
-      }));
   };
 
   const loadVIPLeaderboard = async () => {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, email, vip_level')
+      .from('user_profiles')
+      .select('user_id, username, avatar_url, vip_level')
       .order('vip_level', { ascending: false })
       .limit(100);
 
     if (error || !data) return [];
 
     return data.map((entry, index) => ({
-      user_id: entry.id,
-      username: entry.username || entry.email?.split('@')[0] || 'Anonymous',
-      avatar_url: undefined,
+      user_id: entry.user_id,
+      username: entry.username || 'Anonymous',
+      avatar_url: entry.avatar_url,
       rank: index + 1,
       value: entry.vip_level || 0,
       badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : undefined
@@ -259,45 +235,37 @@ export default function Leaderboard() {
 
   const loadAcademyLeaderboard = async () => {
     const { data, error } = await supabase
-      .from('user_academy_stats')
-      .select(`
-        user_id,
-        total_xp,
-        profiles!user_academy_stats_user_id_fkey (
-          id,
-          username,
-          email
-        )
-      `)
-      .order('total_xp', { ascending: false })
+      .from('user_profiles')
+      .select('user_id, username, avatar_url, academy_xp')
+      .order('academy_xp', { ascending: false })
       .limit(100);
 
     if (error || !data) return [];
 
-    return data.map((entry: any, index) => ({
+    return data.map((entry, index) => ({
       user_id: entry.user_id,
-      username: entry.profiles?.username || entry.profiles?.email?.split('@')[0] || 'Anonymous',
-      avatar_url: undefined,
+      username: entry.username || 'Anonymous',
+      avatar_url: entry.avatar_url,
       rank: index + 1,
-      value: entry.total_xp || 0,
+      value: entry.academy_xp || 0,
       badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : undefined
     }));
   };
 
   const tabs = [
     { id: 'hashrate' as LeaderboardType, label: 'Top Hashrate', icon: Zap, color: 'text-yellow-400' },
-    { id: 'rewards' as LeaderboardType, label: 'Top Earners', icon: TrendingUp, color: 'text-green-500 dark:text-green-400' },
+    { id: 'rewards' as LeaderboardType, label: 'Top Earners', icon: TrendingUp, color: 'text-green-400' },
     { id: 'charity' as LeaderboardType, label: 'Top Donors', icon: Heart, color: 'text-pink-400' },
-    { id: 'referrals' as LeaderboardType, label: 'Top Referrers', icon: Users, color: 'text-blue-500 dark:text-blue-400' },
+    { id: 'referrals' as LeaderboardType, label: 'Top Referrers', icon: Users, color: 'text-blue-400' },
     { id: 'vip' as LeaderboardType, label: 'VIP Status', icon: Crown, color: 'text-gold-400' },
     { id: 'academy' as LeaderboardType, label: 'Academy XP', icon: Award, color: 'text-purple-400' }
   ];
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="w-6 h-6 text-gold-400" />;
-    if (rank === 2) return <Medal className="w-6 h-6 text-secondary-text" />;
+    if (rank === 2) return <Medal className="w-6 h-6 text-gray-300" />;
     if (rank === 3) return <Medal className="w-6 h-6 text-orange-400" />;
-    return <span className="text-tertiary-text font-bold">#{rank}</span>;
+    return <span className="text-gray-500 font-bold">#{rank}</span>;
   };
 
   const getValueLabel = (type: LeaderboardType, value: number) => {
@@ -334,7 +302,7 @@ export default function Leaderboard() {
           <Trophy className="w-8 h-8 text-gold-400" />
           Global Leaderboard
         </h1>
-        <p className="text-tertiary-text">Compete with the TYT community</p>
+        <p className="text-gray-400">Compete with the TYT community</p>
       </div>
 
       {userRank && (
@@ -344,13 +312,13 @@ export default function Leaderboard() {
               <div className="flex items-center gap-3">
                 {getRankIcon(userRank.rank)}
                 <div>
-                  <div className="text-sm text-tertiary-text">Your Rank</div>
+                  <div className="text-sm text-gray-400">Your Rank</div>
                   <div className="text-2xl font-bold">#{userRank.rank}</div>
                 </div>
               </div>
-              <div className="h-12 w-px bg-secondary" />
+              <div className="h-12 w-px bg-gray-700" />
               <div>
-                <div className="text-sm text-tertiary-text">Your Score</div>
+                <div className="text-sm text-gray-400">Your Score</div>
                 <div className="text-xl font-bold">
                   {getValueLabel(activeTab, userRank.value)}
                 </div>
@@ -361,8 +329,8 @@ export default function Leaderboard() {
         </div>
       )}
 
-      <div className="bg-secondary rounded-xl border border-secondary overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-secondary">
+      <div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-gray-700">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -370,7 +338,7 @@ export default function Leaderboard() {
               className={`flex-shrink-0 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${
                 activeTab === tab.id
                   ? 'bg-gold-500/20 text-gold-400 border-b-2 border-gold-500'
-                  : 'text-tertiary-text hover:text-primary-text hover:bg-tertiary'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
               }`}
             >
               <tab.icon size={18} className={activeTab === tab.id ? tab.color : ''} />
@@ -381,7 +349,7 @@ export default function Leaderboard() {
 
         <div className="p-6">
           {leaderboard.length === 0 ? (
-            <div className="text-center py-12 text-tertiary-text">
+            <div className="text-center py-12 text-gray-400">
               <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No data available yet</p>
             </div>
@@ -393,7 +361,7 @@ export default function Leaderboard() {
                   className={`flex items-center justify-between p-4 rounded-lg transition-all ${
                     entry.user_id === user?.id
                       ? 'bg-gold-500/10 border border-gold-500/30'
-                      : 'bg-secondary hover:bg-tertiary'
+                      : 'bg-gray-800/50 hover:bg-gray-800'
                   }`}
                 >
                   <div className="flex items-center gap-4 flex-1">
@@ -412,7 +380,7 @@ export default function Leaderboard() {
                               entry.badge === 'gold'
                                 ? 'bg-gold-500/20 text-gold-400'
                                 : entry.badge === 'silver'
-                                ? 'bg-gray-500/20 text-secondary-text'
+                                ? 'bg-gray-500/20 text-gray-300'
                                 : 'bg-orange-500/20 text-orange-400'
                             }`}
                           >
@@ -420,7 +388,7 @@ export default function Leaderboard() {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-tertiary-text">
+                      <div className="text-sm text-gray-400">
                         {getValueLabel(activeTab, entry.value)}
                       </div>
                     </div>

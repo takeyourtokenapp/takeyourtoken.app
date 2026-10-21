@@ -90,26 +90,26 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
 
   if (compact) {
     return (
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Wallet className="text-gold-400" size={20} />
-            <h3 className="text-lg font-bold text-primary-text">Total Balance</h3>
+            <h3 className="text-lg font-bold text-white">Total Balance</h3>
           </div>
           <button
             onClick={() => setHideBalances(!hideBalances)}
-            className="text-tertiary-text hover:text-primary-text transition-colors"
+            className="text-gray-400 hover:text-white transition-colors"
           >
             {hideBalances ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
 
-        <div className="text-3xl font-bold text-primary-text mb-2">
+        <div className="text-3xl font-bold text-white mb-2">
           {hideBalances ? '••••••' : `$${totalUsdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         </div>
 
         {!hideBalances && totalLocked > 0 && (
-          <div className="flex items-center gap-2 text-sm text-tertiary-text">
+          <div className="flex items-center gap-2 text-sm text-gray-400">
             <Lock size={14} />
             <span>Locked: ${totalLocked.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
@@ -120,15 +120,15 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
 
   return (
     <div className="space-y-6">
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gold-500/20 to-amber-500/20 flex items-center justify-center">
               <Wallet className="text-gold-400" size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-primary-text">Portfolio Value</h2>
-              <p className="text-sm text-tertiary-text">Total balance across all assets</p>
+              <h2 className="text-2xl font-bold text-white">Portfolio Value</h2>
+              <p className="text-sm text-gray-400">Total balance across all assets</p>
             </div>
           </div>
 
@@ -136,14 +136,14 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
             <button
               onClick={handleRefresh}
               disabled={balancesLoading}
-              className="p-2 rounded-lg bg-tertiary hover:bg-secondary transition-colors disabled:opacity-50"
+              className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors disabled:opacity-50"
               title="Refresh balances"
             >
-              <RefreshCw size={18} className={balancesLoading ? 'animate-spin text-tertiary-text' : 'text-tertiary-text'} />
+              <RefreshCw size={18} className={balancesLoading ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={() => setHideBalances(!hideBalances)}
-              className="p-2 rounded-lg bg-tertiary hover:bg-secondary text-tertiary-text transition-colors"
+              className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
               title={hideBalances ? 'Show balances' : 'Hide balances'}
             >
               {hideBalances ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -152,7 +152,7 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
         </div>
 
         <div className="mb-6">
-          <div className="text-4xl font-bold text-primary-text mb-2">
+          <div className="text-4xl font-bold text-white mb-2">
             {hideBalances ? '••••••••' : `$${totalUsdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
 
@@ -172,15 +172,15 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
           )}
         </div>
 
-        <div className="flex items-center gap-4 pt-4 border-t border-secondary">
-          <div className="text-sm text-tertiary-text">Sort by:</div>
+        <div className="flex items-center gap-4 pt-4 border-t border-gray-700">
+          <div className="text-sm text-gray-400">Sort by:</div>
           <div className="flex gap-2">
             <button
               onClick={() => setSortBy('balance')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 sortBy === 'balance'
                   ? 'bg-gold-500/20 text-gold-400 border border-gold-500/50'
-                  : 'bg-tertiary text-secondary-text hover:bg-secondary'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               Balance
@@ -190,7 +190,7 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 sortBy === 'name'
                   ? 'bg-gold-500/20 text-gold-400 border border-gold-500/50'
-                  : 'bg-tertiary text-secondary-text hover:bg-secondary'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
               Name
@@ -202,18 +202,18 @@ export default function WalletBalance({ onSelectAsset, compact = false }: Wallet
       {balancesLoading || walletsLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-secondary rounded-xl p-6 border border-secondary animate-pulse">
-              <div className="h-10 w-10 bg-tertiary rounded-full mb-4"></div>
-              <div className="h-6 bg-tertiary rounded mb-2 w-24"></div>
-              <div className="h-4 bg-tertiary rounded w-32"></div>
+            <div key={i} className="bg-gray-800 rounded-xl p-6 border border-gray-700 animate-pulse">
+              <div className="h-10 w-10 bg-gray-700 rounded-full mb-4"></div>
+              <div className="h-6 bg-gray-700 rounded mb-2 w-24"></div>
+              <div className="h-4 bg-gray-700 rounded w-32"></div>
             </div>
           ))}
         </div>
       ) : sortedBalances.length === 0 ? (
-        <div className="bg-secondary rounded-xl p-12 border border-secondary text-center">
-          <Wallet className="w-16 h-16 text-tertiary-text mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-primary-text mb-2">No Assets Yet</h3>
-          <p className="text-tertiary-text mb-6">Start by depositing funds to your wallet</p>
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-12 border border-gray-700 text-center">
+          <Wallet className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">No Assets Yet</h3>
+          <p className="text-gray-400 mb-6">Start by depositing funds to your wallet</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

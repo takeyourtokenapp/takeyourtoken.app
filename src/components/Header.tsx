@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Menu,
@@ -26,24 +25,8 @@ import {
   UserPlus,
   Flame,
   Server,
-  Sun,
-  Moon,
-  Monitor,
-  Globe,
-  Check,
   Sparkles
 } from 'lucide-react';
-import LanguageSelector from './LanguageSelector';
-import ThemeToggle from './ThemeToggle';
-import AoiCompactWidget from './AoiCompactWidget';
-import { useTheme, type Theme } from '../contexts/ThemeContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { SupportedLanguage } from '../utils/languageDetector';
-import { getTYTLogoUrl } from '../config/aoiConfig';
-
-interface HeaderProps {
-  variant?: 'full' | 'compact';
-}
 
 interface NavItem {
   label: string;
@@ -56,132 +39,11 @@ interface NavItem {
   }[];
 }
 
-// Compact Theme Toggle for mobile
-function ThemeToggleCompact() {
-  const { theme, setTheme } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const themes: Array<{ value: Theme; icon: typeof Sun; label: string }> = [
-    { value: 'light', icon: Sun, label: 'Light' },
-    { value: 'dark', icon: Moon, label: 'Dark' },
-    { value: 'auto', icon: Monitor, label: 'Auto' },
-  ];
-
-  const currentTheme = themes.find(t => t.value === theme) || themes[1];
-  const Icon = currentTheme.icon;
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 bg-tertiary hover:bg-secondary text-primary-text rounded-lg transition-all"
-        aria-label="Theme"
-      >
-        <Icon className="w-4 h-4" />
-      </button>
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-32 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden z-50">
-          {themes.map(({ value, icon: ThemeIcon, label }) => (
-            <button
-              key={value}
-              onClick={() => {
-                setTheme(value);
-                setIsOpen(false);
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
-                theme === value ? 'bg-gold-500 text-white' : 'text-secondary-text hover:bg-tertiary'
-              }`}
-            >
-              <ThemeIcon className="w-4 h-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Compact Language Selector for mobile
-function LanguageSelectorCompact() {
-  const { currentLanguage, changeLanguage, supportedLanguages } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const currentLangConfig = supportedLanguages[currentLanguage];
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 bg-tertiary hover:bg-secondary rounded-lg transition-all flex items-center gap-1.5"
-        aria-label="Language"
-      >
-        <Globe className="w-4 h-4 text-tertiary-text" />
-        <span className="text-sm">{currentLangConfig.flag}</span>
-      </button>
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden z-50">
-          {(Object.keys(supportedLanguages) as SupportedLanguage[]).map((langCode) => {
-            const lang = supportedLanguages[langCode];
-            const isActive = langCode === currentLanguage;
-            return (
-              <button
-                key={langCode}
-                onClick={() => {
-                  changeLanguage(langCode);
-                  setIsOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
-                  isActive ? 'bg-tertiary' : 'hover:bg-tertiary'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{lang.flag}</span>
-                  <span className="text-primary-text text-sm">{lang.nativeName}</span>
-                </div>
-                {isActive && <Check className="w-3 h-3 text-cyan-400" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function Header({ variant = 'full' }: HeaderProps) {
-  const { t } = useTranslation();
-  const location = useLocation();
+export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const { user } = useAuth();
-
-  // Auto-detect compact mode for certain pages
-  const isCompactMode = variant === 'compact' ||
-    location.pathname.startsWith('/app/foundation') ||
-    location.pathname.startsWith('/app/academy');
+  const location = useLocation();
 
   const navItems: NavItem[] = [
     {
@@ -234,74 +96,19 @@ export default function Header({ variant = 'full' }: HeaderProps) {
     setOpenDropdown(null);
   };
 
-  // Compact mode rendering
-  if (isCompactMode) {
-    return (
-      <header className="sticky top-0 z-50 bg-primary/90 backdrop-blur-xl border-b border-secondary">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <img
-                src={getTYTLogoUrl()}
-                alt="TYT"
-                className="w-9 h-9 group-hover:scale-105 transition-transform"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-              <div className="hidden sm:flex flex-col">
-                <span className="text-base font-bold text-primary-text leading-tight">
-                  Take Your Token
-                </span>
-                <span className="text-[10px] text-tertiary-text leading-tight">
-                  Owl Warrior Ecosystem
-                </span>
-              </div>
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <AoiCompactWidget />
-              <div className="hidden sm:flex items-center gap-2">
-                <LanguageSelector />
-                <ThemeToggle />
-              </div>
-              {user && (
-                <Link
-                  to="/app"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-gold-500 to-amber-500 text-black text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-gold-500/30 transition-all"
-                >
-                  App
-                </Link>
-              )}
-            </div>
-          </div>
-        </nav>
-      </header>
-    );
-  }
-
-  // Full mode rendering
   return (
-    <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
+    <header className="sticky top-0 z-50 bg-owl-dark/95 backdrop-blur-md border-b border-gold-800">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2 group">
             <img
-              src={getTYTLogoUrl()}
+              src="/6d629383-acba-4396-8f01-4715f914aada.png"
               alt="TYT"
-              className="w-10 h-10 group-hover:scale-105 transition-transform"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
+              className="w-10 h-10 group-hover:drop-shadow-[0_0_10px_rgba(210,164,76,0.6)] transition-all"
             />
-            <div className="hidden sm:flex flex-col">
-              <span className="text-xl font-bold text-primary-text leading-tight">
-                Take Your Token
-              </span>
-              <span className="text-[11px] text-tertiary-text leading-tight">
-                Owl Warrior Ecosystem
+            <div className="hidden sm:block">
+              <span className="text-xl font-bold bg-owl-gradient bg-clip-text text-transparent">
+                TakeYourToken
               </span>
             </div>
           </Link>
@@ -317,8 +124,8 @@ export default function Header({ variant = 'full' }: HeaderProps) {
                 <button
                   className={`flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                     openDropdown === item.label
-                      ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
-                      : 'text-secondary-text hover:text-primary-text hover:bg-tertiary'
+                      ? 'text-gold-400 bg-gold-500/10'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
                   }`}
                   onClick={() => handleDropdownToggle(item.label)}
                 >
@@ -327,26 +134,26 @@ export default function Header({ variant = 'full' }: HeaderProps) {
                 </button>
 
                 {openDropdown === item.label && item.children && (
-                  <div className="absolute top-full left-0 mt-1 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="absolute top-full left-0 mt-1 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
                     <div className="p-2">
                       {item.children.map((child) => {
-                        const Icon = child.icon || Info;
+                        const Icon = child.icon;
                         return (
                           <Link
                             key={child.href}
                             to={child.href}
                             onClick={closeDropdown}
-                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-secondary transition-all group"
+                            className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-800 transition-all group"
                           >
-                            <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 transition-colors">
-                              <Icon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            <div className="p-2 bg-gold-500/10 rounded-lg group-hover:bg-gold-500/20 transition-colors">
+                              <Icon className="w-5 h-5 text-gold-400" />
                             </div>
                             <div>
-                              <div className="font-medium text-primary-text group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                              <div className="font-medium text-white group-hover:text-gold-400 transition-colors">
                                 {child.label}
                               </div>
                               {child.description && (
-                                <div className="text-xs text-tertiary-text mt-0.5">
+                                <div className="text-xs text-gray-500 mt-0.5">
                                   {child.description}
                                 </div>
                               )}
@@ -361,40 +168,29 @@ export default function Header({ variant = 'full' }: HeaderProps) {
             ))}
           </div>
 
-          {/* Mobile compact controls */}
-          <div className="lg:hidden flex items-center gap-1.5">
-            <AoiCompactWidget className="scale-90" />
-            <ThemeToggleCompact />
-            <LanguageSelectorCompact />
-          </div>
-
-          {/* Desktop controls */}
           <div className="hidden lg:flex items-center gap-3">
-            <AoiCompactWidget />
-            <ThemeToggle />
-            <LanguageSelector />
             {user ? (
               <Link
                 to="/app"
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-lg hover:shadow-md transition-all"
+                className="px-5 py-2 bg-gradient-to-r from-gold-500 to-amber-500 text-black font-semibold rounded-lg hover:shadow-lg hover:shadow-gold-500/30 transition-all"
               >
-                App
+                Open App
               </Link>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-secondary-text hover:text-primary-text font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white font-medium transition-colors"
                 >
                   <LogIn className="w-4 h-4" />
-                  {t('auth.signIn')}
+                  Sign In
                 </Link>
                 <Link
                   to="/signup"
-                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-lg hover:shadow-md transition-all"
+                  className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-gold-500 to-amber-500 text-black font-semibold rounded-lg hover:shadow-lg hover:shadow-gold-500/30 transition-all"
                 >
                   <UserPlus className="w-4 h-4" />
-                  {t('common.getStarted')}
+                  Get Started
                 </Link>
               </>
             )}
@@ -402,7 +198,7 @@ export default function Header({ variant = 'full' }: HeaderProps) {
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-secondary-text hover:text-primary-text"
+            className="lg:hidden p-2 text-gray-400 hover:text-white"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -415,7 +211,7 @@ export default function Header({ variant = 'full' }: HeaderProps) {
                 <div key={item.label}>
                   <button
                     onClick={() => handleDropdownToggle(item.label)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left font-medium text-secondary-text hover:text-primary-text hover:bg-secondary rounded-lg"
+                    className="w-full flex items-center justify-between px-4 py-3 text-left font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg"
                   >
                     {item.label}
                     <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === item.label ? 'rotate-180' : ''}`} />
@@ -424,7 +220,7 @@ export default function Header({ variant = 'full' }: HeaderProps) {
                   {openDropdown === item.label && item.children && (
                     <div className="mt-1 ml-4 space-y-1">
                       {item.children.map((child) => {
-                        const Icon = child.icon || Info;
+                        const Icon = child.icon;
                         return (
                           <Link
                             key={child.href}
@@ -433,7 +229,7 @@ export default function Header({ variant = 'full' }: HeaderProps) {
                               setMobileMenuOpen(false);
                               closeDropdown();
                             }}
-                            className="flex items-center gap-3 px-4 py-2 text-sm text-tertiary-text hover:text-primary-text hover:bg-secondary rounded-lg"
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg"
                           >
                             <Icon className="w-4 h-4 text-gold-400" />
                             {child.label}
@@ -453,23 +249,23 @@ export default function Header({ variant = 'full' }: HeaderProps) {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block w-full text-center px-5 py-3 bg-gradient-to-r from-gold-500 to-amber-500 text-black font-semibold rounded-lg"
                 >
-                  {t('common.openApp')}
+                  Open App
                 </Link>
               ) : (
                 <>
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full text-center px-5 py-3 border border-secondary text-primary-text font-medium rounded-lg hover:bg-secondary"
+                    className="block w-full text-center px-5 py-3 border border-gray-700 text-white font-medium rounded-lg hover:bg-gray-800"
                   >
-                    {t('auth.signIn')}
+                    Sign In
                   </Link>
                   <Link
                     to="/signup"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block w-full text-center px-5 py-3 bg-gradient-to-r from-gold-500 to-amber-500 text-black font-semibold rounded-lg"
                   >
-                    {t('common.getStarted')}
+                    Get Started
                   </Link>
                 </>
               )}

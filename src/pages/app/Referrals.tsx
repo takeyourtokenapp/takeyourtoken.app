@@ -168,7 +168,7 @@ export default function Referrals() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold mb-2">Referral Program</h1>
-        <p className="text-tertiary-text">Earn commission by inviting friends to TakeYourToken</p>
+        <p className="text-gray-400">Earn commission by inviting friends to TakeYourToken</p>
       </div>
 
       {/* Referral Code Card */}
@@ -176,11 +176,11 @@ export default function Referrals() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getTierColor(stats.tier)} flex items-center justify-center`}>
-              <Award className="w-8 h-8 text-primary-text" />
+              <Award className="w-8 h-8 text-white" />
             </div>
             <div>
               <h2 className="text-2xl font-bold">{stats.tier} Tier</h2>
-              <p className="text-sm text-tertiary-text">{getTierCommission(stats.tier)} commission on referrals</p>
+              <p className="text-sm text-gray-400">{getTierCommission(stats.tier)} commission on referrals</p>
             </div>
           </div>
           <button
@@ -193,7 +193,7 @@ export default function Referrals() {
         </div>
 
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <label className="text-sm text-secondary-text mb-2 block">Your Referral Code</label>
+          <label className="text-sm text-gray-300 mb-2 block">Your Referral Code</label>
           <div className="flex items-center gap-3">
             <code className="flex-1 text-2xl font-bold tracking-wider">{referralCode}</code>
             <button
@@ -206,7 +206,7 @@ export default function Referrals() {
         </div>
 
         <div className="mt-4 bg-black/20 rounded-lg p-4 border border-white/10">
-          <label className="text-sm text-secondary-text mb-2 block">Your Referral Link</label>
+          <label className="text-sm text-gray-300 mb-2 block">Your Referral Link</label>
           <div className="flex items-center gap-3">
             <input
               type="text"
@@ -286,7 +286,7 @@ export default function Referrals() {
       </div>
 
       {/* Tier Progress */}
-      <div className="bg-secondary border border-secondary rounded-xl p-6">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6">
         <h3 className="text-xl font-bold mb-4">Tier Progress</h3>
         <div className="space-y-4">
           <TierProgress
@@ -325,13 +325,13 @@ export default function Referrals() {
       </div>
 
       {/* Referrals List */}
-      <div className="bg-secondary border border-secondary rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-gray-700">
           <h3 className="text-xl font-bold">Your Referrals</h3>
         </div>
 
         {referrals.length === 0 ? (
-          <div className="p-12 text-center text-tertiary-text">
+          <div className="p-12 text-center text-gray-400">
             <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
             <p className="text-lg font-semibold mb-2">No referrals yet</p>
             <p className="text-sm">Share your referral code to start earning commissions!</p>
@@ -341,21 +341,21 @@ export default function Referrals() {
             {/* Desktop View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-tertiary border-b border-secondary">
+                <thead className="bg-gray-900/50 border-b border-gray-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">User</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Your Commission</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-tertiary-text uppercase">Joined</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">User</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Your Commission</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase">Joined</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {referrals.map((referral) => (
-                    <tr key={referral.id} className="hover:bg-tertiary transition-colors">
+                    <tr key={referral.id} className="hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4">
                         <div>
                           <div className="font-semibold">{referral.referred_username}</div>
-                          <div className="text-sm text-tertiary-text">{referral.referred_email}</div>
+                          <div className="text-sm text-gray-400">{referral.referred_email}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -369,7 +369,7 @@ export default function Referrals() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-tertiary-text">
+                        <span className="text-sm text-gray-400">
                           {new Date(referral.joined_at).toLocaleDateString()}
                         </span>
                       </td>
@@ -386,14 +386,14 @@ export default function Referrals() {
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="font-semibold">{referral.referred_username}</div>
-                      <div className="text-xs text-tertiary-text">{referral.referred_email}</div>
+                      <div className="text-xs text-gray-400">{referral.referred_email}</div>
                     </div>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(referral.status)}`}>
                       {referral.status}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-sm text-tertiary-text">
+                    <span className="text-sm text-gray-400">
                       {new Date(referral.joined_at).toLocaleDateString()}
                     </span>
                     <span className="font-bold text-green-400">
@@ -422,7 +422,7 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
     <div className={`${colorClasses[color]} border rounded-xl p-4`}>
       <div className="flex items-center gap-3 mb-2">
         {icon}
-        <span className="text-sm text-tertiary-text">{label}</span>
+        <span className="text-sm text-gray-400">{label}</span>
       </div>
       <p className="text-2xl font-bold">{value}</p>
     </div>
@@ -440,7 +440,7 @@ function TierProgress({ name, commission, required, current, max, active }: {
   const progress = Math.min((current / max) * 100, 100);
 
   return (
-    <div className={`p-4 rounded-lg border ${active ? 'bg-blue-500/10 border-blue-500/50' : 'bg-tertiary border-secondary'}`}>
+    <div className={`p-4 rounded-lg border ${active ? 'bg-blue-500/10 border-blue-500/50' : 'bg-gray-800/50 border-gray-700'}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <span className="font-bold">{name}</span>
@@ -448,10 +448,10 @@ function TierProgress({ name, commission, required, current, max, active }: {
         </div>
         <div className="text-right">
           <div className="font-bold text-green-400">{commission}</div>
-          <div className="text-xs text-tertiary-text">{required}</div>
+          <div className="text-xs text-gray-400">{required}</div>
         </div>
       </div>
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300"
           style={{ width: `${progress}%` }}

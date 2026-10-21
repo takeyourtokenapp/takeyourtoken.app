@@ -1,6 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { TronWeb } from 'npm:tronweb@6.0.0';
-import { rateLimiters } from '../_shared/rateLimiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,28 +33,6 @@ async function generateQRCode(address: string, network: string): Promise<string>
   }
 }
 
-async function encryptPrivateKey(privateKey: string, masterKey: string): Promise<string> {
-  const crypto = await import('node:crypto');
-
-  const iv = crypto.randomBytes(16);
-  const key = crypto.createHash('sha256').update(masterKey).digest();
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-  const encrypted = Buffer.concat([
-    cipher.update(privateKey, 'utf8'),
-    cipher.final()
-  ]);
-
-  const authTag = cipher.getAuthTag();
-
-  return JSON.stringify({
-    iv: iv.toString('hex'),
-    encrypted: encrypted.toString('hex'),
-    authTag: authTag.toString('hex'),
-    version: 1
-  });
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -63,10 +40,6 @@ Deno.serve(async (req: Request) => {
       headers: corsHeaders,
     });
   }
-
-  // Apply rate limiting (10 requests per minute)
-  const rateLimitResponse = await rateLimiters.strict(req);
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -142,10 +115,7 @@ Deno.serve(async (req: Request) => {
     let privateKeyEncrypted: string | null = null;
     let derivationPath = '';
 
-    const encryptionKey = Deno.env.get('WALLET_ENCRYPTION_KEY');
-    if (!encryptionKey || encryptionKey === 'default-encryption-key-change-in-production') {
-      throw new Error('WALLET_ENCRYPTION_KEY must be configured with a secure value');
-    }
+    const encryptionKey = Deno.env.get('WALLET_ENCRYPTION_KEY') || 'default-encryption-key-change-in-production';
     const crypto = await import('node:crypto');
 
     if (network_code === 'BTC') {
@@ -160,7 +130,7 @@ Deno.serve(async (req: Request) => {
 
       newAddress = address!;
       derivationPath = `m/84'/0'/0'/0/${accountIndex}`;
-      privateKeyEncrypted = await encryptPrivateKey(privateKeyBytes.toString('hex'), encryptionKey);
+      privateKeyEncrypted = btoa(`${encryptionKey}:${privateKeyBytes.toString('hex')}`);
 
     } else if (network_code === 'TRON') {
       const tronWeb = new TronWeb({
@@ -170,7 +140,7 @@ Deno.serve(async (req: Request) => {
       const account = await tronWeb.createAccount();
       newAddress = account.address.base58;
       derivationPath = `m/44'/195'/0'/0/${accountIndex}`;
-      privateKeyEncrypted = await encryptPrivateKey(account.privateKey, encryptionKey);
+      privateKeyEncrypted = btoa(`${encryptionKey}:${account.privateKey}`);
 
     } else if (network_code === 'ETH' || network_code === 'BSC' || network_code === 'POLYGON') {
       const wallet = crypto.randomBytes(32).toString('hex');
@@ -184,21 +154,21 @@ Deno.serve(async (req: Request) => {
 
       const coinType = network_code === 'ETH' ? '60' : network_code === 'BSC' ? '60' : '60';
       derivationPath = `m/44'/${coinType}'/0'/0/${accountIndex}`;
-      privateKeyEncrypted = await encryptPrivateKey(wallet, encryptionKey);
+      privateKeyEncrypted = btoa(`${encryptionKey}:${wallet}`);
 
     } else if (network_code === 'SOL') {
       const { Keypair } = await import('npm:@solana/web3.js@1.87.6');
       const keypair = Keypair.generate();
       newAddress = keypair.publicKey.toBase58();
       derivationPath = `m/44'/501'/0'/0/${accountIndex}`;
-      privateKeyEncrypted = await encryptPrivateKey(Buffer.from(keypair.secretKey).toString('hex'), encryptionKey);
+      privateKeyEncrypted = btoa(`${encryptionKey}:${Buffer.from(keypair.secretKey).toString('hex')}`);
 
     } else if (network_code === 'XRP') {
       const { Wallet } = await import('npm:xrpl@3.0.0');
       const wallet = Wallet.generate();
       newAddress = wallet.address;
       derivationPath = `m/44'/144'/0'/0/${accountIndex}`;
-      privateKeyEncrypted = await encryptPrivateKey(wallet.seed!, encryptionKey);
+      privateKeyEncrypted = btoa(`${encryptionKey}:${wallet.seed}`);
 
     } else {
       throw new Error(`Address generation not implemented for ${network_code}`);

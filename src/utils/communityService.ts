@@ -5,7 +5,7 @@ export interface CommunityMessage {
   user_id: string;
   username: string;
   avatar: string;
-  rank?: string;
+  owl_rank: string;
   message: string;
   is_system: boolean;
   created_at: string;
@@ -15,7 +15,7 @@ export interface LeaderboardEntry {
   user_id: string;
   username: string;
   avatar: string;
-  rank: string;
+  owl_rank: string;
   total_hashrate: number;
   total_rewards: number;
   total_xp: number;
@@ -55,7 +55,7 @@ export const communityService = {
 
       const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
       const avatar = user.user_metadata?.avatar || '🦉';
-      const rank = user.user_metadata?.rank || 'worker';
+      const owlRank = user.user_metadata?.owl_rank || 'Worker';
 
       const { data, error } = await supabase
         .from('community_messages')
@@ -63,7 +63,7 @@ export const communityService = {
           user_id: user.id,
           username,
           avatar,
-          rank: rank,
+          owl_rank: owlRank,
           message: message.trim(),
           is_system: false
         })
@@ -246,7 +246,8 @@ export const communityService = {
 
       if (error) throw error;
       return data || [];
-    } catch {
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
       return [];
     }
   },
@@ -292,7 +293,7 @@ export const communityService = {
         .from('user_lesson_progress')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_completed', true);
+        .eq('completed', true);
 
       if (miners && miners.length >= 1) {
         await this.grantAchievement(

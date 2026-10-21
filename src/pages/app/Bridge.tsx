@@ -1,371 +1,346 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, ArrowLeftRight, Info, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import {
-  Bridge as BridgeIcon,
-  ArrowDownUp,
-  Clock,
-  AlertTriangle,
-  Info,
-  CheckCircle,
-  ExternalLink
-} from 'lucide-react';
-import NetworkSelector from '../../components/wallet/NetworkSelector';
-import TokenSelector from '../../components/wallet/TokenSelector';
 
 interface Network {
-  id: string;
+  code: string;
   name: string;
-  symbol: string;
-  fee: number;
+  icon: string;
+  tokens: string[];
 }
 
-interface Token {
-  symbol: string;
-  name: string;
-  balance: number;
-}
+const NETWORKS: Network[] = [
+  { code: 'SOL', name: 'Solana', icon: '◎', tokens: ['SOL', 'TYT', 'USDT'] },
+  { code: 'ETH', name: 'Ethereum', icon: 'Ξ', tokens: ['ETH', 'USDT', 'wBTC'] },
+  { code: 'BSC', name: 'BNB Chain', icon: '⬡', tokens: ['BNB', 'USDT', 'TYT'] },
+  { code: 'MATIC', name: 'Polygon', icon: '⬢', tokens: ['MATIC', 'USDT', 'TYT'] },
+  { code: 'TRX', name: 'TRON', icon: '⬣', tokens: ['TRX', 'USDT'] },
+  { code: 'AVAX', name: 'Avalanche', icon: '🔺', tokens: ['AVAX', 'USDT'] },
+  { code: 'TON', name: 'TON', icon: '💎', tokens: ['TON', 'USDT'] },
+];
 
 export default function Bridge() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [bridging, setBridging] = useState(false);
-
-  const [fromNetwork, setFromNetwork] = useState<Network | null>(null);
-  const [toNetwork, setToNetwork] = useState<Network | null>(null);
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+  const [fromNetwork, setFromNetwork] = useState<Network>(NETWORKS[0]);
+  const [toNetwork, setToNetwork] = useState<Network>(NETWORKS[1]);
+  const [selectedToken, setSelectedToken] = useState('USDT');
   const [amount, setAmount] = useState('');
-
-  const [recentBridges, setRecentBridges] = useState<any[]>([]);
-
-  const networks: Network[] = [
-    { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', fee: 2.5 },
-    { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', fee: 15.0 },
-    { id: 'polygon', name: 'Polygon', symbol: 'MATIC', fee: 0.1 },
-    { id: 'tron', name: 'Tron', symbol: 'TRX', fee: 1.0 },
-    { id: 'solana', name: 'Solana', symbol: 'SOL', fee: 0.05 },
-    { id: 'bsc', name: 'BNB Chain', symbol: 'BNB', fee: 0.5 },
-    { id: 'ton', name: 'TON', symbol: 'TON', fee: 0.3 },
-    { id: 'xrp', name: 'XRP Ledger', symbol: 'XRP', fee: 0.01 }
-  ];
-
-  const tokens: Token[] = [
-    { symbol: 'TYT', name: 'TakeYourToken', balance: 1000 },
-    { symbol: 'BTC', name: 'Bitcoin', balance: 0.5 },
-    { symbol: 'USDT', name: 'Tether USD', balance: 5000 }
-  ];
+  const [toAddress, setToAddress] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [estimatedFee, setEstimatedFee] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState('5-10');
+  const [transfers, setTransfers] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (user) {
-      loadBridgeHistory();
+      loadTransfers();
     }
   }, [user]);
 
-  const loadBridgeHistory = async () => {
+  useEffect(() => {
+    // Calculate estimated fee based on networks
+    const baseFee = 0.5; // 0.5% base fee
+    const networkFee = 0.2; // Additional network fee
+    setEstimatedFee(baseFee + networkFee);
+  }, [fromNetwork, toNetwork, selectedToken]);
+
+  const loadTransfers = async () => {
     if (!user) return;
 
-    try {
-      setLoading(true);
+    const { data, error } = await supabase
+      .from('cross_chain_transfers')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-      const { data, error } = await supabase
-        .from('cross_chain_transfers')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-
-      setRecentBridges(data || []);
-
-      if (!fromNetwork) setFromNetwork(networks[2]);
-      if (!toNetwork) setToNetwork(networks[4]);
-      if (!selectedToken) setSelectedToken(tokens[0]);
-    } catch (err) {
-      console.error('Error loading bridge history:', err);
-    } finally {
-      setLoading(false);
+    if (data) {
+      setTransfers(data);
     }
   };
 
-  const handleSwitchNetworks = () => {
+  const handleSwapNetworks = () => {
     const temp = fromNetwork;
     setFromNetwork(toNetwork);
     setToNetwork(temp);
   };
 
   const handleBridge = async () => {
-    if (!user || !fromNetwork || !toNetwork || !selectedToken || !amount || parseFloat(amount) <= 0) return;
+    if (!user || !amount || !toAddress) return;
 
-    const bridgeAmount = parseFloat(amount);
-    if (bridgeAmount > selectedToken.balance) {
-      alert('Insufficient balance');
-      return;
-    }
+    setLoading(true);
 
     try {
-      setBridging(true);
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('cross_chain_transfers')
         .insert({
           user_id: user.id,
-          from_chain: fromNetwork.symbol,
-          to_chain: toNetwork.symbol,
-          token_symbol: selectedToken.symbol,
-          amount: bridgeAmount,
-          fee_amount: fromNetwork.fee,
-          status: 'pending',
-          estimated_time_minutes: 15
-        });
+          from_blockchain: fromNetwork.code.toLowerCase(),
+          to_blockchain: toNetwork.code.toLowerCase(),
+          token_symbol: selectedToken,
+          amount: parseFloat(amount),
+          bridge_fee: (parseFloat(amount) * estimatedFee) / 100,
+          from_address: 'auto-generated', // Will be filled by backend
+          to_address: toAddress,
+          bridge_provider: 'wormhole',
+          status: 'initiated',
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      await loadBridgeHistory();
+      alert('Bridge transfer initiated! Check history for status updates.');
       setAmount('');
-
-      alert('Bridge transfer initiated! Check your recent transfers below.');
-    } catch (err) {
-      console.error('Bridge error:', err);
-      alert('Bridge transfer failed. Please try again.');
+      setToAddress('');
+      loadTransfers();
+    } catch (error: any) {
+      console.error('Bridge error:', error);
+      alert(error.message || 'Bridge transfer failed');
     } finally {
-      setBridging(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-400"></div>
-      </div>
-    );
-  }
+  const availableTokens = fromNetwork.tokens.filter(token =>
+    toNetwork.tokens.includes(token)
+  );
 
-  const estimatedTime = 15;
-  const totalFee = fromNetwork ? fromNetwork.fee : 0;
-  const receiveAmount = amount && parseFloat(amount) > 0
-    ? (parseFloat(amount) - (totalFee / 1000)).toFixed(6)
-    : '0.00';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-400';
+      case 'failed': return 'text-red-400';
+      case 'bridging': return 'text-yellow-400';
+      default: return 'text-gray-400';
+    }
+  };
 
-  const isBridgeValid = fromNetwork && toNetwork && selectedToken && amount &&
-    parseFloat(amount) > 0 &&
-    parseFloat(amount) <= selectedToken.balance &&
-    fromNetwork.id !== toNetwork.id;
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle2 className="w-4 h-4" />;
+      case 'failed': return <AlertCircle className="w-4 h-4" />;
+      default: return <Loader2 className="w-4 h-4 animate-spin" />;
+    }
+  };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Cross-Chain Bridge</h1>
-        <p className="text-gray-400">
-          Transfer assets securely between different blockchains
-        </p>
+        <p className="text-gray-400">Transfer assets between different blockchains seamlessly</p>
       </div>
 
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+      {/* Bridge Interface */}
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-8 border border-gray-700/50">
+        <div className="space-y-6">
+          {/* From Network */}
           <div>
-            <p className="text-sm text-blue-400 font-medium mb-1">
-              How Bridge Works
-            </p>
-            <p className="text-xs text-blue-400/80">
-              Your tokens are locked on the source chain and equivalent tokens are minted on the destination chain.
-              The process is secured by smart contracts and typically takes 10-30 minutes.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-br from-navy-800 to-navy-900 border border-gold-500/20 rounded-xl p-6 space-y-4">
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <NetworkSelector
-            label="From Network"
-            selectedNetwork={fromNetwork}
-            networks={networks}
-            onSelect={setFromNetwork}
-          />
-
-          <div className="mt-4">
-            <TokenSelector
-              label="Token"
-              selectedToken={selectedToken}
-              tokens={tokens}
-              onSelect={setSelectedToken}
-            />
+            <label className="block text-sm font-medium text-gray-300 mb-3">From Network</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {NETWORKS.map((network) => (
+                <button
+                  key={network.code}
+                  onClick={() => network.code !== toNetwork.code && setFromNetwork(network)}
+                  disabled={network.code === toNetwork.code}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    fromNetwork.code === network.code
+                      ? 'border-[#D2A44C] bg-[#D2A44C]/10'
+                      : network.code === toNetwork.code
+                      ? 'border-gray-700/50 bg-gray-800/30 opacity-50 cursor-not-allowed'
+                      : 'border-gray-700/50 bg-gray-800/30 hover:border-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{network.icon}</div>
+                  <div className="text-sm font-medium text-white">{network.name}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Amount
-            </label>
+          {/* Swap Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleSwapNetworks}
+              className="p-3 rounded-full bg-gray-800 border border-gray-700 hover:border-[#D2A44C] hover:bg-gray-700 transition-all"
+            >
+              <ArrowLeftRight className="w-5 h-5 text-[#D2A44C]" />
+            </button>
+          </div>
+
+          {/* To Network */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-3">To Network</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {NETWORKS.map((network) => (
+                <button
+                  key={network.code}
+                  onClick={() => network.code !== fromNetwork.code && setToNetwork(network)}
+                  disabled={network.code === fromNetwork.code}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    toNetwork.code === network.code
+                      ? 'border-[#D2A44C] bg-[#D2A44C]/10'
+                      : network.code === fromNetwork.code
+                      ? 'border-gray-700/50 bg-gray-800/30 opacity-50 cursor-not-allowed'
+                      : 'border-gray-700/50 bg-gray-800/30 hover:border-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{network.icon}</div>
+                  <div className="text-sm font-medium text-white">{network.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Token Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-3">Token</label>
+            <div className="flex gap-3">
+              {availableTokens.map((token) => (
+                <button
+                  key={token}
+                  onClick={() => setSelectedToken(token)}
+                  className={`px-6 py-3 rounded-lg border-2 transition-all ${
+                    selectedToken === token
+                      ? 'border-[#D2A44C] bg-[#D2A44C]/10 text-white'
+                      : 'border-gray-700/50 bg-gray-800/30 text-gray-400 hover:border-gray-600'
+                  }`}
+                >
+                  {token}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Amount</label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.0"
-              className="w-full px-4 py-3 bg-navy-800 border border-gray-600 rounded-lg text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
+              placeholder="0.00"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#D2A44C]"
             />
-            {selectedToken && (
-              <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="text-gray-400">Balance: {selectedToken.balance.toFixed(4)}</span>
-                <button
-                  onClick={() => setAmount(selectedToken.balance.toString())}
-                  className="text-gold-400 hover:text-gold-300 font-medium"
-                >
-                  Max
-                </button>
-              </div>
-            )}
           </div>
-        </div>
 
-        <div className="flex justify-center">
+          {/* Destination Address */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Destination Address on {toNetwork.name}
+            </label>
+            <input
+              type="text"
+              value={toAddress}
+              onChange={(e) => setToAddress(e.target.value)}
+              placeholder={`Enter ${toNetwork.name} address`}
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#D2A44C]"
+            />
+          </div>
+
+          {/* Bridge Info */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-gray-300">
+                  <span>Bridge Fee:</span>
+                  <span className="text-white font-medium">{estimatedFee}%</span>
+                </div>
+                <div className="flex justify-between text-gray-300">
+                  <span>Estimated Time:</span>
+                  <span className="text-white font-medium">{estimatedTime} minutes</span>
+                </div>
+                <div className="flex justify-between text-gray-300">
+                  <span>Bridge Provider:</span>
+                  <span className="text-white font-medium">Wormhole</span>
+                </div>
+                {amount && (
+                  <div className="pt-2 border-t border-blue-500/20">
+                    <div className="flex justify-between text-gray-300">
+                      <span>You will receive:</span>
+                      <span className="text-white font-medium">
+                        ~{(parseFloat(amount) * (1 - estimatedFee / 100)).toFixed(6)} {selectedToken}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Bridge Button */}
           <button
-            onClick={handleSwitchNetworks}
-            className="p-3 bg-navy-700 border border-gold-500/20 rounded-lg hover:border-gold-500 transition-all hover:rotate-180"
+            onClick={handleBridge}
+            disabled={loading || !amount || !toAddress || parseFloat(amount) <= 0}
+            className="w-full py-4 bg-gradient-to-r from-[#D2A44C] to-yellow-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-[#D2A44C]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            <ArrowDownUp className="w-5 h-5 text-gold-400" />
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <ArrowRight className="w-5 h-5" />
+                Bridge {selectedToken}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Transfer History */}
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700/50">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white">Transfer History</h2>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="text-[#D2A44C] hover:text-yellow-400 text-sm"
+          >
+            {showHistory ? 'Hide' : 'Show'} History
           </button>
         </div>
 
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <NetworkSelector
-            label="To Network"
-            selectedNetwork={toNetwork}
-            networks={networks.filter(n => n.id !== fromNetwork?.id)}
-            onSelect={setToNetwork}
-          />
-
-          <div className="mt-4 bg-navy-800/50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">You will receive</span>
-              <span className="text-xl font-bold text-green-400">
-                {receiveAmount} {selectedToken?.symbol}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>Est. time: {estimatedTime} minutes</span>
-              <span>Fee: ${totalFee.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={handleBridge}
-          disabled={!isBridgeValid || bridging}
-          className="w-full py-4 bg-gradient-to-r from-gold-400 to-gold-600 text-navy-900 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-gold-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {bridging ? 'Bridging...' : 'Bridge Tokens'}
-        </button>
-
-        {!isBridgeValid && amount && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-yellow-400" />
-              <p className="text-sm text-yellow-400">
-                {parseFloat(amount) > (selectedToken?.balance || 0)
-                  ? 'Insufficient balance'
-                  : fromNetwork?.id === toNetwork?.id
-                  ? 'Source and destination networks must be different'
-                  : 'Enter a valid amount'}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-navy-800 border border-gold-500/20 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white">Bridge Details</h3>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-sm">Bridge Fee</span>
-            <span className="text-white font-medium">${totalFee.toFixed(2)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-sm">Estimated Time</span>
-            <span className="text-white font-medium">{estimatedTime} minutes</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-sm">Security</span>
-            <span className="text-green-400 font-medium">Multi-Sig Contracts</span>
-          </div>
-        </div>
-      </div>
-
-      {recentBridges.length > 0 && (
-        <div className="bg-navy-800 border border-gold-500/20 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-gold-400" />
-            Recent Transfers
-          </h3>
+        {showHistory && (
           <div className="space-y-3">
-            {recentBridges.map((bridge) => {
-              const statusColors = {
-                pending: 'text-yellow-400',
-                completed: 'text-green-400',
-                failed: 'text-red-400'
-              };
-              const statusIcons = {
-                pending: Clock,
-                completed: CheckCircle,
-                failed: AlertTriangle
-              };
-              const StatusIcon = statusIcons[bridge.status as keyof typeof statusIcons] || Clock;
-
-              return (
+            {transfers.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                No bridge transfers yet
+              </div>
+            ) : (
+              transfers.map((transfer) => (
                 <div
-                  key={bridge.id}
-                  className="flex items-center justify-between bg-navy-700/50 rounded-lg p-4"
+                  key={transfer.id}
+                  className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50"
                 >
-                  <div className="flex items-center gap-3">
-                    <StatusIcon className={`w-5 h-5 ${statusColors[bridge.status as keyof typeof statusColors]}`} />
-                    <div>
-                      <p className="text-white font-medium">
-                        {bridge.amount} {bridge.token_symbol}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {bridge.from_chain} → {bridge.to_chain}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(bridge.created_at).toLocaleString()}
-                      </p>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">
+                          {transfer.amount} {transfer.token_symbol}
+                        </span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-gray-400 text-sm">
+                          {transfer.from_blockchain.toUpperCase()} → {transfer.to_blockchain.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(transfer.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className={`flex items-center gap-2 ${getStatusColor(transfer.status)}`}>
+                      {getStatusIcon(transfer.status)}
+                      <span className="text-sm font-medium capitalize">{transfer.status}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-medium capitalize ${statusColors[bridge.status as keyof typeof statusColors]}`}>
-                      {bridge.status}
-                    </p>
-                    {bridge.tx_hash && (
-                      <button className="flex items-center gap-1 text-xs text-gold-400 hover:text-gold-300 mt-1">
-                        <ExternalLink className="w-3 h-3" />
-                        View TX
-                      </button>
-                    )}
-                  </div>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
-        </div>
-      )}
-
-      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm text-yellow-400 font-medium mb-1">
-              Important Bridge Safety Tips
-            </p>
-            <ul className="text-xs text-yellow-400/80 space-y-1 list-disc list-inside">
-              <li>Always verify the destination address before bridging</li>
-              <li>Bridge transfers are irreversible once confirmed</li>
-              <li>Large transfers may take longer to process</li>
-              <li>Keep your transaction hash for tracking</li>
-            </ul>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

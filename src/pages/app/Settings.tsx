@@ -96,7 +96,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-tertiary-text">Loading settings...</div>
+        <div className="text-gray-400">Loading settings...</div>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export default function Settings() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-tertiary-text">Manage your account and preferences</p>
+        <p className="text-gray-400">Manage your account and preferences</p>
       </div>
 
       {message && (
@@ -125,8 +125,8 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="bg-secondary rounded-xl border border-secondary">
-        <div className="flex border-b border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700">
+        <div className="flex border-b border-gray-700">
           {[
             { id: 'account', label: 'Account', icon: User },
             { id: 'security', label: 'Security', icon: Shield },
@@ -139,7 +139,7 @@ export default function Settings() {
               className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${
                 activeTab === tab.id
                   ? 'bg-gold-500/20 text-gold-400 border-b-2 border-gold-500'
-                  : 'text-tertiary-text hover:text-primary-text hover:bg-tertiary'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
               }`}
             >
               <tab.icon size={18} />
@@ -161,7 +161,7 @@ export default function Settings() {
                       value={formData.username}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       placeholder="Enter username"
-                      className="w-full px-4 py-3 bg-tertiary border border-secondary rounded-lg focus:outline-none focus:border-gold-500 transition-colors"
+                      className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-gold-500 transition-colors"
                     />
                   </div>
 
@@ -171,9 +171,9 @@ export default function Settings() {
                       type="email"
                       value={formData.email}
                       disabled
-                      className="w-full px-4 py-3 bg-tertiary border border-secondary rounded-lg opacity-50 cursor-not-allowed"
+                      className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg opacity-50 cursor-not-allowed"
                     />
-                    <p className="text-xs text-tertiary-text mt-1">Email cannot be changed</p>
+                    <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
                   </div>
 
                   <div>
@@ -182,7 +182,7 @@ export default function Settings() {
                       type="text"
                       value={user?.id || ''}
                       disabled
-                      className="w-full px-4 py-3 bg-tertiary border border-secondary rounded-lg opacity-50 cursor-not-allowed font-mono text-sm"
+                      className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg opacity-50 cursor-not-allowed font-mono text-sm"
                     />
                   </div>
 
@@ -204,27 +204,27 @@ export default function Settings() {
               <div>
                 <h3 className="text-xl font-bold mb-4">Security Settings</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-tertiary rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
                     <div>
                       <div className="font-semibold mb-1 flex items-center gap-2">
                         <Key className="w-5 h-5 text-gold-400" />
                         Two-Factor Authentication
                       </div>
-                      <div className="text-sm text-tertiary-text">
+                      <div className="text-sm text-gray-400">
                         Add an extra layer of security to your account
                       </div>
                     </div>
-                    <button className="px-4 py-2 bg-secondary rounded-lg font-semibold hover:bg-tertiary transition-all">
+                    <button className="px-4 py-2 bg-gray-700 rounded-lg font-semibold hover:bg-gray-600 transition-all">
                       Enable
                     </button>
                   </div>
 
-                  <div className="p-4 bg-tertiary rounded-lg">
+                  <div className="p-4 bg-gray-800/50 rounded-lg">
                     <div className="font-semibold mb-2 flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                      <Shield className="w-5 h-5 text-blue-400" />
                       Active Sessions
                     </div>
-                    <div className="text-sm text-tertiary-text mb-4">
+                    <div className="text-sm text-gray-400 mb-4">
                       You are currently signed in on this device
                     </div>
                     <button className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg font-semibold hover:bg-red-500/30 transition-all">
@@ -247,10 +247,10 @@ export default function Settings() {
               <div>
                 <h3 className="text-xl font-bold mb-4">Notification Preferences</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-tertiary rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
                     <div>
                       <div className="font-semibold mb-1">Email Notifications</div>
-                      <div className="text-sm text-tertiary-text">
+                      <div className="text-sm text-gray-400">
                         Receive updates about your account via email
                       </div>
                     </div>
@@ -258,14 +258,14 @@ export default function Settings() {
                       type="checkbox"
                       checked={formData.notifications_email}
                       onChange={(e) => setFormData({ ...formData, notifications_email: e.target.checked })}
-                      className="w-6 h-6 rounded border-secondary bg-tertiary text-gold-500 focus:ring-gold-500"
+                      className="w-6 h-6 rounded border-gray-700 bg-gray-900 text-gold-500 focus:ring-gold-500"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-tertiary rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
                     <div>
                       <div className="font-semibold mb-1">Push Notifications</div>
-                      <div className="text-sm text-tertiary-text">
+                      <div className="text-sm text-gray-400">
                         Receive push notifications for important events
                       </div>
                     </div>
@@ -273,7 +273,7 @@ export default function Settings() {
                       type="checkbox"
                       checked={formData.notifications_push}
                       onChange={(e) => setFormData({ ...formData, notifications_push: e.target.checked })}
-                      className="w-6 h-6 rounded border-secondary bg-tertiary text-gold-500 focus:ring-gold-500"
+                      className="w-6 h-6 rounded border-gray-700 bg-gray-900 text-gold-500 focus:ring-gold-500"
                     />
                   </div>
                 </div>

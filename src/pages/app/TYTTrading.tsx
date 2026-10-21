@@ -1,8 +1,24 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useWeb3 } from '@/contexts/Web3Context';
-import { useToast } from '@/contexts/ToastContext';
-import { getTYTLogoUrl } from '../../config/aoiConfig';
+import { useAuth } from '../../contexts/AuthContext';
+import { useWeb3 } from '../../contexts/Web3Context';
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RefreshCw,
+  ExternalLink,
+  Activity,
+  DollarSign,
+  Users,
+  Droplets,
+  BarChart3,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Zap
+} from 'lucide-react';
 import {
   getTYTTokenData,
   getUserTYTHoldings,
@@ -11,689 +27,531 @@ import {
   sellTYTToken,
   formatWalletAddress,
   formatTokenAmount,
+  getPriceChangeColor,
   type TYTTokenData,
   type TradeSummary,
-  type Trade,
-} from '@/utils/pumpFun';
-import {
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
-  Wallet,
-  RefreshCw,
-  Clock,
-  CheckCircle,
-  XCircle,
-  BarChart3,
-  Activity,
-  DollarSign,
-  Users,
-  Droplets,
-  ExternalLink,
-} from 'lucide-react';
-import PriceAlertWidget from '@/components/PriceAlertWidget';
-import OrderBookWidget from '@/components/OrderBookWidget';
+  type Trade
+} from '../../utils/pumpFun';
+
+type TradeMode = 'buy' | 'sell' | null;
 
 export default function TYTTrading() {
   const { user } = useAuth();
-  const { connectedWallet, connectPhantom, getProvider, isConnecting } = useWeb3();
-  const { showToast } = useToast();
+  const { connectedWallet, connectPhantom, isConnecting, getProvider } = useWeb3();
 
   const [tokenData, setTokenData] = useState<TYTTokenData | null>(null);
   const [holdings, setHoldings] = useState<TradeSummary | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
-  const [amount, setAmount] = useState('');
+  const [tradeMode, setTradeMode] = useState<TradeMode>(null);
+  const [buyAmount, setBuyAmount] = useState('');
+  const [sellAmount, setSellAmount] = useState('');
   const [isTrading, setIsTrading] = useState(false);
-
-  const [selectedTab, setSelectedTab] = useState<'chart' | 'trades' | 'portfolio'>('chart');
-
-  useEffect(() => {
-    loadData();
-
-    const interval = setInterval(() => {
-      loadData();
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [user]);
 
   const loadData = async () => {
     if (!user) return;
 
     try {
-      setLoading(true);
-      const [tokenDataResult, holdingsResult, tradesResult] = await Promise.all([
+      const [token, userHoldings, userTrades] = await Promise.all([
         getTYTTokenData(),
         getUserTYTHoldings(user.id),
-        getUserTrades(user.id),
+        getUserTrades(user.id)
       ]);
 
-      setTokenData(tokenDataResult);
-      setHoldings(holdingsResult);
-      setTrades(tradesResult);
+      setTokenData(token);
+      setHoldings(userHoldings);
+      setTrades(userTrades);
     } catch (error) {
       console.error('Error loading data:', error);
-      showToast('Failed to load trading data', 'error');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
+    setIsRefreshing(true);
     await loadData();
-    setRefreshing(false);
-    showToast('Data refreshed', 'success');
+    setIsRefreshing(false);
   };
 
-  const handleTrade = async () => {
-    if (!connectedWallet) {
-      showToast('Please connect your Phantom wallet first', 'error');
-      return;
-    }
-
-    if (!amount || parseFloat(amount) <= 0) {
-      showToast('Please enter a valid amount', 'error');
-      return;
-    }
-
-    const provider = getProvider();
-    if (!provider) {
-      showToast('Phantom wallet not available', 'error');
-      return;
-    }
+  const handleBuy = async () => {
+    if (!connectedWallet || !buyAmount || parseFloat(buyAmount) <= 0) return;
 
     setIsTrading(true);
     try {
-      let result;
-      if (tradeType === 'buy') {
-        result = await buyTYTToken(connectedWallet.wallet_address, parseFloat(amount), provider);
-      } else {
-        result = await sellTYTToken(connectedWallet.wallet_address, parseFloat(amount), provider);
-      }
+      const provider = getProvider();
+      const result = await buyTYTToken(
+        connectedWallet.wallet_address,
+        parseFloat(buyAmount),
+        provider
+      );
 
       if (result.success) {
-        showToast(`${tradeType === 'buy' ? 'Purchase' : 'Sale'} successful!`, 'success');
-        setAmount('');
+        alert(`Purchase initiated!\nTransaction: ${result.signature?.slice(0, 16)}...`);
+        setTradeMode(null);
+        setBuyAmount('');
         await loadData();
       } else {
-        showToast(result.error || 'Transaction failed', 'error');
+        alert(`Purchase failed: ${result.error}`);
       }
     } catch (error) {
-      console.error('Trade error:', error);
-      showToast('Transaction failed', 'error');
+      console.error('Error buying TYT:', error);
+      alert('Failed to buy TYT tokens');
     } finally {
       setIsTrading(false);
     }
   };
 
-  const calculateEstimate = () => {
-    if (!amount || !tokenData) return { tokens: 0, sol: 0, usd: 0 };
+  const handleSell = async () => {
+    if (!connectedWallet || !sellAmount || parseFloat(sellAmount) <= 0) return;
 
-    const amountNum = parseFloat(amount);
-    if (tradeType === 'buy') {
-      const tokens = amountNum / tokenData.price;
-      return {
-        tokens,
-        sol: amountNum,
-        usd: amountNum * 140,
-      };
-    } else {
-      const sol = amountNum * tokenData.price;
-      return {
-        tokens: amountNum,
-        sol,
-        usd: sol * 140,
-      };
+    setIsTrading(true);
+    try {
+      const provider = getProvider();
+      const result = await sellTYTToken(
+        connectedWallet.wallet_address,
+        parseFloat(sellAmount),
+        provider
+      );
+
+      if (result.success) {
+        alert(`Sale initiated!\nTransaction: ${result.signature?.slice(0, 16)}...`);
+        setTradeMode(null);
+        setSellAmount('');
+        await loadData();
+      } else {
+        alert(`Sale failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error selling TYT:', error);
+      alert('Failed to sell TYT tokens');
+    } finally {
+      setIsTrading(false);
     }
   };
 
-  const estimate = calculateEstimate();
+  useEffect(() => {
+    loadData();
+  }, [user]);
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-primary p-6 flex items-center justify-center">
+      <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3">
-          <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
-          <span className="text-primary-text text-lg">Loading trading data...</span>
+          <div className="w-6 h-6 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-gray-400">Loading TYT trading...</div>
         </div>
       </div>
     );
   }
 
+  const estimatedBuyTYT = buyAmount && tokenData
+    ? parseFloat(buyAmount) / tokenData.price
+    : 0;
+
+  const estimatedSellSOL = sellAmount && tokenData
+    ? parseFloat(sellAmount) * tokenData.price
+    : 0;
+
   return (
-    <div className="min-h-screen bg-primary p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-primary-text mb-2">TYT Trading</h1>
-            <p className="text-tertiary-text">Real-time market data from pump.fun</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold">
+              T
+            </span>
+            TYT Token Trading
+          </h1>
+          <p className="text-gray-400">Trade TYT on Pump.fun via Solana blockchain</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {connectedWallet ? (
+            <div className="px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-lg flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+              <span className="text-sm font-mono">{formatWalletAddress(connectedWallet.wallet_address)}</span>
+            </div>
+          ) : (
+            <button
+              onClick={connectPhantom}
+              disabled={isConnecting}
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold hover:from-purple-400 hover:to-pink-400 transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {isConnecting ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-5 h-5" />
+                  Connect Phantom
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary border border-secondary rounded-lg text-primary-text hover:bg-tertiary transition-colors disabled:opacity-50"
+            disabled={isRefreshing}
+            className="px-4 py-2 bg-gray-800 rounded-lg font-semibold hover:bg-gray-700 transition-all flex items-center gap-2 disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
+      </div>
 
-        <div className={`border rounded-xl p-4 ${
-          tokenData?.source?.includes('Loading') || tokenData?.source?.includes('Error')
-            ? 'bg-yellow-500/10 border-yellow-500/30'
-            : tokenData?.source?.includes('Cached') || tokenData?.source?.includes('old')
-              ? 'bg-blue-500/10 border-blue-500/30'
-              : 'bg-green-500/10 border-green-500/30'
-        }`}>
-          <div className="flex items-start gap-3">
-            <Activity className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-              tokenData?.source?.includes('Loading') || tokenData?.source?.includes('Error')
-                ? 'text-yellow-500'
-                : tokenData?.source?.includes('Cached') || tokenData?.source?.includes('old')
-                  ? 'text-blue-500'
-                  : 'text-green-500'
-            }`} />
-            <div className="flex-1">
-              <h3 className="font-semibold text-primary-text mb-1">
-                {tokenData?.source?.includes('Loading') || tokenData?.source?.includes('Error')
-                  ? 'Connecting to Data Sources...'
-                  : tokenData?.source?.includes('Cached') || tokenData?.source?.includes('old')
-                    ? 'Recent Market Data (Cached)'
-                    : 'Live Market Data'}
-              </h3>
-              <p className="text-sm text-tertiary-text leading-relaxed">
-                {tokenData?.source?.includes('Loading') || tokenData?.source?.includes('Error') ? (
-                  <>
-                    Connecting to real-time data sources (Pump.fun, DexScreener, Jupiter).
-                    The system is attempting to fetch live market data for TYT token.
-                    Auto-retry every 15 seconds. Please wait...
-                  </>
-                ) : tokenData?.source?.includes('Cached') || tokenData?.source?.includes('old') ? (
-                  <>
-                    Displaying recent cached market data. Live sources are being checked in the background.
-                    Data automatically updates every 15 seconds when new information becomes available.
-                  </>
-                ) : (
-                  <>
-                    Real-time market data from Solana blockchain and DEX aggregators.
-                    Token: <span className="font-mono text-xs">8YuADot...v7rpump</span>
-                    {' '}• Auto-updates every 15 seconds • Trading functionality coming soon
-                  </>
-                )}
-              </p>
-              {tokenData?.source && (
-                <div className="mt-2 flex items-center gap-2 text-xs">
-                  <span className="text-tertiary-text">Data source:</span>
-                  <span className={`font-medium ${
-                    tokenData.source.includes('Loading') || tokenData.source.includes('Error')
-                      ? 'text-yellow-500 dark:text-yellow-400'
-                      : tokenData.source.includes('Cached') || tokenData.source.includes('old')
-                        ? 'text-blue-500 dark:text-blue-400'
-                        : 'text-green-500 dark:text-green-400'
-                  }`}>
-                    {tokenData.source}
-                  </span>
-                </div>
-              )}
+      {tokenData && (
+        <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-xl p-6 border border-amber-500/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <div className="text-sm text-gray-300 mb-2 flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Price
+              </div>
+              <div className="text-3xl font-bold text-amber-400 mb-1">
+                ${tokenData.price.toFixed(8)}
+              </div>
+              <div className={`text-sm font-semibold flex items-center gap-1 ${getPriceChangeColor(tokenData.priceChange24h)}`}>
+                {tokenData.priceChange24h > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                {tokenData.priceChange24h > 0 ? '+' : ''}{tokenData.priceChange24h.toFixed(2)}% (24h)
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm text-gray-300 mb-2 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Market Cap
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                ${formatTokenAmount(tokenData.marketCap)}
+              </div>
+              <div className="text-sm text-gray-400">
+                Vol: ${formatTokenAmount(tokenData.volume24h)}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm text-gray-300 mb-2 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Holders
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                {tokenData.holders.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-400">
+                Supply: {formatTokenAmount(tokenData.totalSupply)}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm text-gray-300 mb-2 flex items-center gap-2">
+                <Droplets className="w-4 h-4" />
+                Liquidity
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">
+                ${formatTokenAmount(tokenData.liquidity)}
+              </div>
+              <a
+                href="https://pump.fun/8YuADotEATc86nEgPUZVs8fBRxdMMgEP4JL4xv7rpump"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+              >
+                View on Pump.fun
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-secondary rounded-xl border border-secondary p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={getTYTLogoUrl()}
-                    alt="TYT Token"
-                    className="w-12 h-12"
-                  />
-                  <div>
-                    <h2 className="text-2xl font-bold text-primary-text">TYT Token</h2>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-tertiary-text flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${
-                          tokenData?.source?.includes('Loading') || tokenData?.source?.includes('Error')
-                            ? 'bg-yellow-500 animate-pulse'
-                            : tokenData?.source?.includes('Cached') || tokenData?.source?.includes('old')
-                              ? 'bg-blue-500 animate-pulse'
-                              : tokenData?.source && tokenData.price > 0
-                                ? 'bg-green-500 animate-pulse'
-                                : 'bg-red-500'
-                        }`}></span>
-                        {tokenData?.source || 'Connecting...'}
-                      </p>
-                      {tokenData?.lastUpdate && (
-                        <span className="text-xs text-tertiary-text">
-                          • Updated {new Date(tokenData.lastUpdate).toLocaleTimeString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-xs text-tertiary-text hidden md:block">
-                    Auto-refresh: 15s
-                  </div>
-                  <a
-                    href="https://pump.fun/coin/8YuADotEATc86nEgPUZVs8fBRxdMMgEP4JL4xv7rpump"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-500 hover:bg-amber-500/20 transition-colors text-sm"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    View on Pump.fun
-                  </a>
-                </div>
+      {holdings && (
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Activity className="w-6 h-6 text-amber-400" />
+            Your TYT Holdings
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="text-sm text-gray-400 mb-1">Net Balance</div>
+              <div className="text-2xl font-bold text-amber-400">
+                {formatTokenAmount(holdings.net_tyt_balance, 2)} TYT
               </div>
-
-              {tokenData && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-tertiary/50 rounded-lg p-4">
-                    <div className="text-sm text-tertiary-text mb-1">Price</div>
-                    <div className="text-xl font-bold text-primary-text">
-                      ${tokenData.price.toFixed(8)}
-                    </div>
-                    <div
-                      className={`text-sm flex items-center gap-1 mt-1 ${
-                        tokenData.priceChange24h >= 0
-                          ? 'text-green-500 dark:text-green-400'
-                          : 'text-red-500 dark:text-red-400'
-                      }`}
-                    >
-                      {tokenData.priceChange24h >= 0 ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
-                      {Math.abs(tokenData.priceChange24h).toFixed(2)}%
-                    </div>
-                  </div>
-
-                  <div className="bg-tertiary/50 rounded-lg p-4">
-                    <div className="text-sm text-tertiary-text mb-1">Market Cap</div>
-                    <div className="text-xl font-bold text-primary-text">
-                      ${formatTokenAmount(tokenData.marketCap, 0)}
-                    </div>
-                  </div>
-
-                  <div className="bg-tertiary/50 rounded-lg p-4">
-                    <div className="text-sm text-tertiary-text mb-1">24h Volume</div>
-                    <div className="text-xl font-bold text-primary-text">
-                      ${formatTokenAmount(tokenData.volume24h, 0)}
-                    </div>
-                  </div>
-
-                  <div className="bg-tertiary/50 rounded-lg p-4">
-                    <div className="text-sm text-tertiary-text mb-1">Holders</div>
-                    <div className="text-xl font-bold text-primary-text">{tokenData.holders}</div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setSelectedTab('chart')}
-                  className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                    selectedTab === 'chart'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-tertiary text-tertiary-text hover:bg-tertiary/70'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4 inline mr-2" />
-                  Chart
-                </button>
-                <button
-                  onClick={() => setSelectedTab('trades')}
-                  className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                    selectedTab === 'trades'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-tertiary text-tertiary-text hover:bg-tertiary/70'
-                  }`}
-                >
-                  <Activity className="w-4 h-4 inline mr-2" />
-                  Trades
-                </button>
-                <button
-                  onClick={() => setSelectedTab('portfolio')}
-                  className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                    selectedTab === 'portfolio'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-tertiary text-tertiary-text hover:bg-tertiary/70'
-                  }`}
-                >
-                  <DollarSign className="w-4 h-4 inline mr-2" />
-                  Portfolio
-                </button>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="text-sm text-gray-400 mb-1">Total Invested</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {holdings.total_sol_spent.toFixed(4)} SOL
               </div>
-
-              <div className="bg-tertiary/30 rounded-lg p-6">
-                {selectedTab === 'chart' && (
-                  <div className="space-y-4">
-                    <div className="bg-secondary border border-secondary rounded-lg p-6">
-                      <div className="text-center">
-                        <BarChart3 className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                        <p className="text-lg font-semibold text-primary-text mb-2">
-                          Live Market Data
-                        </p>
-                        <p className="text-sm text-tertiary-text max-w-md mx-auto">
-                          Real-time price data from pump.fun. Advanced charting features with TradingView integration coming soon.
-                        </p>
-                        <div className="mt-4">
-                          <a
-                            href="https://pump.fun/coin/8YuADotEATc86nEgPUZVs8fBRxdMMgEP4JL4xv7rpump?tab=market_cap"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-sm"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            View Full Chart on Pump.fun
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                    {tokenData && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-secondary rounded-lg p-4">
-                          <div className="flex items-center gap-2 text-tertiary-text mb-2">
-                            <Droplets className="w-4 h-4" />
-                            <span className="text-sm">Liquidity</span>
-                          </div>
-                          <div className="text-lg font-bold text-primary-text">
-                            ${formatTokenAmount(tokenData.liquidity, 0)}
-                          </div>
-                        </div>
-                        <div className="bg-secondary rounded-lg p-4">
-                          <div className="flex items-center gap-2 text-tertiary-text mb-2">
-                            <Users className="w-4 h-4" />
-                            <span className="text-sm">Total Supply</span>
-                          </div>
-                          <div className="text-lg font-bold text-primary-text">
-                            {formatTokenAmount(tokenData.totalSupply, 0)}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedTab === 'trades' && (
-                  <div className="space-y-4">
-                    {trades.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Activity className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                        <p className="text-tertiary-text">No trades yet</p>
-                        <p className="text-sm text-tertiary-text mt-2">
-                          Your trade history will appear here
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {trades.map((trade) => (
-                          <div
-                            key={trade.id}
-                            className="bg-secondary rounded-lg p-4 flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                  trade.trade_type === 'buy'
-                                    ? 'bg-green-500/10'
-                                    : 'bg-red-500/10'
-                                }`}
-                              >
-                                {trade.trade_type === 'buy' ? (
-                                  <ArrowUpRight
-                                    className={`w-5 h-5 ${
-                                      trade.trade_type === 'buy'
-                                        ? 'text-green-500 dark:text-green-400'
-                                        : 'text-red-500 dark:text-red-400'
-                                    }`}
-                                  />
-                                ) : (
-                                  <ArrowDownRight
-                                    className={`w-5 h-5 ${
-                                      trade.trade_type === 'buy'
-                                        ? 'text-green-500 dark:text-green-400'
-                                        : 'text-red-500 dark:text-red-400'
-                                    }`}
-                                  />
-                                )}
-                              </div>
-                              <div>
-                                <div className="font-medium text-primary-text capitalize">
-                                  {trade.trade_type} TYT
-                                </div>
-                                <div className="text-sm text-tertiary-text">
-                                  {new Date(trade.created_at).toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium text-primary-text">
-                                {formatTokenAmount(trade.tyt_amount)} TYT
-                              </div>
-                              <div className="text-sm text-tertiary-text">
-                                {trade.sol_amount.toFixed(4)} SOL
-                              </div>
-                              <div className="flex items-center gap-1 justify-end mt-1">
-                                {trade.status === 'confirmed' && (
-                                  <CheckCircle className="w-3 h-3 text-green-500 dark:text-green-400" />
-                                )}
-                                {trade.status === 'pending' && (
-                                  <Clock className="w-3 h-3 text-amber-500" />
-                                )}
-                                {trade.status === 'failed' && (
-                                  <XCircle className="w-3 h-3 text-red-500 dark:text-red-400" />
-                                )}
-                                <span className="text-xs text-tertiary-text capitalize">
-                                  {trade.status}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedTab === 'portfolio' && holdings && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-secondary rounded-lg p-4">
-                        <div className="text-sm text-tertiary-text mb-1">Total TYT Bought</div>
-                        <div className="text-xl font-bold text-green-500 dark:text-green-400">
-                          {formatTokenAmount(holdings.total_tyt_bought)}
-                        </div>
-                      </div>
-                      <div className="bg-secondary rounded-lg p-4">
-                        <div className="text-sm text-tertiary-text mb-1">Total TYT Sold</div>
-                        <div className="text-xl font-bold text-red-500 dark:text-red-400">
-                          {formatTokenAmount(holdings.total_tyt_sold)}
-                        </div>
-                      </div>
-                      <div className="bg-secondary rounded-lg p-4">
-                        <div className="text-sm text-tertiary-text mb-1">Net Balance</div>
-                        <div className="text-xl font-bold text-primary-text">
-                          {formatTokenAmount(holdings.net_tyt_balance)} TYT
-                        </div>
-                      </div>
-                      <div className="bg-secondary rounded-lg p-4">
-                        <div className="text-sm text-tertiary-text mb-1">Avg Buy Price</div>
-                        <div className="text-xl font-bold text-primary-text">
-                          ${holdings.average_buy_price.toFixed(8)}
-                        </div>
-                      </div>
-                      <div className="bg-secondary rounded-lg p-4">
-                        <div className="text-sm text-tertiary-text mb-1">Total SOL Spent</div>
-                        <div className="text-xl font-bold text-primary-text">
-                          {holdings.total_sol_spent.toFixed(4)} SOL
-                        </div>
-                      </div>
-                      <div className="bg-secondary rounded-lg p-4">
-                        <div className="text-sm text-tertiary-text mb-1">Total Trades</div>
-                        <div className="text-xl font-bold text-primary-text">
-                          {holdings.trade_count}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="text-sm text-gray-400 mb-1">Avg Buy Price</div>
+              <div className="text-2xl font-bold text-green-400">
+                ${holdings.average_buy_price.toFixed(8)}
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-6">
-            {!connectedWallet ? (
-              <div className="bg-secondary rounded-xl border border-secondary p-6">
-                <div className="text-center">
-                  <Wallet className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-primary-text mb-2">Connect Wallet</h3>
-                  <p className="text-tertiary-text mb-6">
-                    Connect your Phantom wallet to start trading TYT tokens
-                  </p>
-                  <button
-                    onClick={connectPhantom}
-                    disabled={isConnecting}
-                    className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isConnecting ? 'Connecting...' : 'Connect Phantom Wallet'}
-                  </button>
+      {!connectedWallet ? (
+        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-12 border border-purple-500/30 text-center">
+          <Wallet className="w-16 h-16 mx-auto mb-4 text-purple-400 opacity-50" />
+          <h3 className="text-xl font-bold mb-2">Connect Your Wallet</h3>
+          <p className="text-gray-400 mb-6">
+            Connect your Phantom wallet to start trading TYT tokens on Pump.fun
+          </p>
+          <button
+            onClick={connectPhantom}
+            disabled={isConnecting}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold hover:from-purple-400 hover:to-pink-400 transition-all disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            <Wallet className="w-5 h-5" />
+            Connect Phantom Wallet
+          </button>
+        </div>
+      ) : (
+        <div>
+          <h2 className="text-xl font-bold mb-4">Quick Trade</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => setTradeMode('buy')}
+              className="group p-6 bg-gradient-to-br from-green-500/10 to-emerald-500/10 hover:from-green-500/20 hover:to-emerald-500/20 rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-500/20 rounded-xl group-hover:bg-green-500/30 transition-colors">
+                  <ArrowDownLeft className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-lg mb-1">Buy TYT</div>
+                  <div className="text-sm text-gray-400">Purchase TYT tokens with SOL</div>
                 </div>
               </div>
-            ) : (
-              <div className="bg-secondary rounded-xl border border-secondary p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-primary-text">Trade TYT</h3>
-                  <div className="flex items-center gap-2 text-sm text-tertiary-text">
-                    <Wallet className="w-4 h-4" />
-                    {formatWalletAddress(connectedWallet.wallet_address)}
-                  </div>
+            </button>
+
+            <button
+              onClick={() => setTradeMode('sell')}
+              className="group p-6 bg-gradient-to-br from-red-500/10 to-rose-500/10 hover:from-red-500/20 hover:to-rose-500/20 rounded-xl border border-red-500/30 hover:border-red-500/50 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors">
+                  <ArrowUpRight className="w-6 h-6 text-red-400" />
                 </div>
-
-                <div className="flex gap-2 mb-6">
-                  <button
-                    onClick={() => setTradeType('buy')}
-                    className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                      tradeType === 'buy'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-tertiary text-tertiary-text hover:bg-tertiary/70'
-                    }`}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    onClick={() => setTradeType('sell')}
-                    className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                      tradeType === 'sell'
-                        ? 'bg-red-500 text-white'
-                        : 'bg-tertiary text-tertiary-text hover:bg-tertiary/70'
-                    }`}
-                  >
-                    Sell
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-tertiary-text mb-2">
-                      {tradeType === 'buy' ? 'SOL Amount' : 'TYT Amount'}
-                    </label>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      className="w-full px-4 py-3 bg-tertiary border border-secondary rounded-lg text-primary-text focus:outline-none focus:border-amber-500 transition-colors"
-                    />
-                  </div>
-
-                  {amount && tokenData && (
-                    <div className="bg-tertiary/50 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-tertiary-text">You will {tradeType}:</span>
-                        <span className="text-primary-text font-medium">
-                          {tradeType === 'buy'
-                            ? `${formatTokenAmount(estimate.tokens)} TYT`
-                            : `${estimate.sol.toFixed(4)} SOL`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-tertiary-text">Price per token:</span>
-                        <span className="text-primary-text font-medium">
-                          ${tokenData.price.toFixed(8)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-tertiary-text">Est. USD value:</span>
-                        <span className="text-primary-text font-medium">
-                          ${estimate.usd.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    disabled={true}
-                    className="w-full py-3 px-4 font-medium rounded-lg transition-colors opacity-50 cursor-not-allowed bg-tertiary text-tertiary-text"
-                  >
-                    Trading Coming Soon
-                  </button>
-
-                  <div className="mt-3 p-3 bg-tertiary/50 rounded-lg">
-                    <p className="text-xs text-tertiary-text text-center">
-                      Direct trading will be available soon through our wallet integration with pump.fun
-                    </p>
-                  </div>
+                <div className="text-left">
+                  <div className="font-bold text-lg mb-1">Sell TYT</div>
+                  <div className="text-sm text-gray-400">Sell TYT tokens for SOL</div>
                 </div>
               </div>
-            )}
-
-            {holdings && (
-              <div className="bg-secondary rounded-xl border border-secondary p-6">
-                <h3 className="text-lg font-bold text-primary-text mb-4">Your Holdings</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-tertiary-text">TYT Balance:</span>
-                    <span className="text-lg font-bold text-primary-text">
-                      {formatTokenAmount(holdings.net_tyt_balance)}
-                    </span>
-                  </div>
-                  {tokenData && holdings.net_tyt_balance > 0 && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-tertiary-text">Current Value:</span>
-                        <span className="text-primary-text font-medium">
-                          ${(holdings.net_tyt_balance * tokenData.price * 140).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-tertiary-text">Total Trades:</span>
-                        <span className="text-primary-text font-medium">
-                          {holdings.trade_count}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {tokenData && <PriceAlertWidget currentPrice={tokenData.price} />}
-
-            {tokenData && <OrderBookWidget currentPrice={tokenData.price} />}
+            </button>
           </div>
+        </div>
+      )}
+
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700">
+        <div className="p-6 border-b border-gray-700">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Clock className="w-6 h-6 text-amber-400" />
+            Trade History
+          </h2>
+        </div>
+        <div className="divide-y divide-gray-700">
+          {trades.length === 0 ? (
+            <div className="p-12 text-center text-gray-400">
+              <Activity className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p>No trades yet</p>
+              <p className="text-sm mt-2">Start trading to see your history here</p>
+            </div>
+          ) : (
+            trades.map((trade) => (
+              <div key={trade.id} className="p-6 hover:bg-gray-800/30 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                      trade.trade_type === 'buy' ? 'bg-green-500/20' : 'bg-red-500/20'
+                    }`}>
+                      {trade.trade_type === 'buy' ? (
+                        <ArrowDownLeft className="w-6 h-6 text-green-400" />
+                      ) : (
+                        <ArrowUpRight className="w-6 h-6 text-red-400" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-semibold capitalize mb-1">
+                        {trade.trade_type} TYT
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {new Date(trade.created_at).toLocaleString()}
+                      </div>
+                      {trade.tx_signature && (
+                        <div className="text-xs text-gray-500 font-mono mt-1">
+                          {trade.tx_signature.slice(0, 16)}...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`font-bold text-lg ${
+                      trade.trade_type === 'buy' ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {formatTokenAmount(trade.tyt_amount, 2)} TYT
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {trade.sol_amount.toFixed(4)} SOL
+                    </div>
+                    <div className={`text-xs font-semibold mt-1 flex items-center justify-end gap-1 ${
+                      trade.status === 'confirmed' ? 'text-green-400' :
+                      trade.status === 'pending' ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {trade.status === 'confirmed' ? (
+                        <CheckCircle2 className="w-3 h-3" />
+                      ) : trade.status === 'pending' ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <AlertCircle className="w-3 h-3" />
+                      )}
+                      {trade.status.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
+
+      {tradeMode === 'buy' && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-700 max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold flex items-center gap-2">
+                <Zap className="w-6 h-6 text-green-400" />
+                Buy TYT
+              </h3>
+              <button onClick={() => setTradeMode(null)} className="text-gray-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-3">SOL Amount</label>
+                <input
+                  type="number"
+                  value={buyAmount}
+                  onChange={(e) => setBuyAmount(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg"
+                />
+              </div>
+
+              {buyAmount && tokenData && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-2">You will receive approximately:</div>
+                  <div className="text-2xl font-bold text-blue-400">
+                    {formatTokenAmount(estimatedBuyTYT, 2)} TYT
+                  </div>
+                  <div className="text-xs text-gray-400 mt-2">
+                    Price: ${tokenData.price.toFixed(8)} per TYT
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-gray-300">
+                  Make sure you have enough SOL in your connected wallet. Transaction will be executed on Solana blockchain.
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setTradeMode(null)}
+                  className="flex-1 px-4 py-3 bg-gray-700 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBuy}
+                  disabled={!buyAmount || parseFloat(buyAmount) <= 0 || isTrading}
+                  className="flex-1 px-4 py-3 bg-green-500 rounded-lg font-semibold hover:bg-green-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isTrading ? 'Processing...' : 'Buy TYT'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tradeMode === 'sell' && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-700 max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold flex items-center gap-2">
+                <Zap className="w-6 h-6 text-red-400" />
+                Sell TYT
+              </h3>
+              <button onClick={() => setTradeMode(null)} className="text-gray-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              {holdings && (
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="text-sm text-gray-400">Available Balance</div>
+                  <div className="text-xl font-bold text-amber-400">
+                    {formatTokenAmount(holdings.net_tyt_balance, 2)} TYT
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium mb-3">TYT Amount</label>
+                <input
+                  type="number"
+                  value={sellAmount}
+                  onChange={(e) => setSellAmount(e.target.value)}
+                  placeholder="0.00"
+                  step="any"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg"
+                />
+              </div>
+
+              {sellAmount && tokenData && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <div className="text-sm text-gray-300 mb-2">You will receive approximately:</div>
+                  <div className="text-2xl font-bold text-blue-400">
+                    {estimatedSellSOL.toFixed(6)} SOL
+                  </div>
+                  <div className="text-xs text-gray-400 mt-2">
+                    Price: ${tokenData.price.toFixed(8)} per TYT
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setTradeMode(null)}
+                  className="flex-1 px-4 py-3 bg-gray-700 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSell}
+                  disabled={!sellAmount || parseFloat(sellAmount) <= 0 || isTrading}
+                  className="flex-1 px-4 py-3 bg-red-500 rounded-lg font-semibold hover:bg-red-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isTrading ? 'Processing...' : 'Sell TYT'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

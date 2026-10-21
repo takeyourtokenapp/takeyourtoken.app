@@ -156,35 +156,35 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
     const isCredit = parseFloat(entry.amount) > 0;
 
     return (
-      <div className="flex items-center gap-4 p-4 bg-tertiary rounded-lg hover:bg-secondary transition-colors">
-        <div className={`w-10 h-10 rounded-full bg-secondary flex items-center justify-center ${color}`}>
+      <div className="flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors">
+        <div className={`w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center ${color}`}>
           <Icon size={20} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <div className="font-semibold text-primary-text capitalize">
+            <div className="font-semibold text-white capitalize">
               {entry.entry_type.replace('_', ' ')}
             </div>
             {entry.reference_id && (
-              <span className="text-xs text-tertiary-text font-mono truncate max-w-[100px]">
+              <span className="text-xs text-gray-500 font-mono truncate max-w-[100px]">
                 #{entry.reference_id.slice(0, 8)}
               </span>
             )}
           </div>
-          <div className="text-sm text-tertiary-text truncate">
+          <div className="text-sm text-gray-400 truncate">
             {entry.description || `${entry.entry_type} transaction`}
           </div>
-          <div className="text-xs text-tertiary-text mt-1">
+          <div className="text-xs text-gray-500 mt-1">
             {formatDate(entry.created_at)}
           </div>
         </div>
 
         <div className="text-right">
-          <div className={`text-lg font-semibold ${isCredit ? 'text-green-400 dark:text-green-300' : 'text-secondary-text'}`}>
+          <div className={`text-lg font-semibold ${isCredit ? 'text-green-400' : 'text-gray-300'}`}>
             {isCredit ? '+' : ''}{parseFloat(entry.amount).toFixed(entry.currency === 'BTC' ? 8 : 4)} {entry.currency}
           </div>
-          <div className="text-xs text-tertiary-text">
+          <div className="text-xs text-gray-500">
             Balance: {parseFloat(entry.balance_after || '0').toFixed(entry.currency === 'BTC' ? 8 : 4)}
           </div>
         </div>
@@ -197,10 +197,10 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
       <div className="space-y-3">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="animate-spin text-tertiary-text" size={24} />
+            <Loader2 className="animate-spin text-gray-400" size={24} />
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="text-center py-8 text-tertiary-text">
+          <div className="text-center py-8 text-gray-400">
             No transactions yet
           </div>
         ) : (
@@ -214,15 +214,15 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
 
   return (
     <div className="space-y-6">
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-tertiary flex items-center justify-center">
-              <History className="text-secondary-text" size={24} />
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+              <History className="text-gray-300" size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-primary-text">Transaction History</h2>
-              <p className="text-sm text-tertiary-text">
+              <h2 className="text-2xl font-bold text-white">Transaction History</h2>
+              <p className="text-sm text-gray-400">
                 {filteredEntries.length} transaction{filteredEntries.length !== 1 ? 's' : ''}
               </p>
             </div>
@@ -232,7 +232,7 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
             <button
               onClick={() => refetch()}
               disabled={isLoading}
-              className="p-2 rounded-lg bg-tertiary hover:bg-secondary transition-colors disabled:opacity-50"
+              className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors disabled:opacity-50"
               title="Refresh"
             >
               <Loader2 size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -240,7 +240,7 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
             <button
               onClick={handleExport}
               disabled={filteredEntries.length === 0}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-tertiary hover:bg-secondary transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors disabled:opacity-50"
               title="Export CSV"
             >
               <Download size={18} />
@@ -251,23 +251,23 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
 
         <div className="space-y-4 mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary-text" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search transactions..."
-              className="w-full pl-10 pr-4 py-2 bg-tertiary border border-secondary rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs text-tertiary-text mb-1">Type</label>
+              <label className="block text-xs text-gray-400 mb-1">Type</label>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-secondary rounded-lg text-primary-text text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
               >
                 <option value="all">All Types</option>
                 {entryTypes.map(type => (
@@ -277,11 +277,11 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
             </div>
 
             <div>
-              <label className="block text-xs text-tertiary-text mb-1">Currency</label>
+              <label className="block text-xs text-gray-400 mb-1">Currency</label>
               <select
                 value={filterCurrency}
                 onChange={(e) => setFilterCurrency(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-secondary rounded-lg text-primary-text text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
               >
                 <option value="all">All Currencies</option>
                 {currencies.map(currency => (
@@ -291,22 +291,22 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
             </div>
 
             <div>
-              <label className="block text-xs text-tertiary-text mb-1">From Date</label>
+              <label className="block text-xs text-gray-400 mb-1">From Date</label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-secondary rounded-lg text-primary-text text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-tertiary-text mb-1">To Date</label>
+              <label className="block text-xs text-gray-400 mb-1">To Date</label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-secondary rounded-lg text-primary-text text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
                 setDateFrom('');
                 setDateTo('');
               }}
-              className="text-sm text-blue-400 dark:text-blue-300 hover:text-blue-300 dark:hover:text-blue-400 transition-colors"
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
               Clear all filters
             </button>
@@ -330,13 +330,13 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
         <div className="space-y-3">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="animate-spin text-tertiary-text" size={32} />
+              <Loader2 className="animate-spin text-gray-400" size={32} />
             </div>
           ) : filteredEntries.length === 0 ? (
             <div className="text-center py-12">
-              <History className="w-16 h-16 text-tertiary-text mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-primary-text mb-2">No Transactions Found</h3>
-              <p className="text-tertiary-text">
+              <History className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">No Transactions Found</h3>
+              <p className="text-gray-400">
                 {searchQuery || filterType !== 'all' || filterCurrency !== 'all'
                   ? 'Try adjusting your filters'
                   : 'Your transaction history will appear here'}
@@ -350,7 +350,7 @@ export default function WalletHistory({ compact = false, limit }: WalletHistoryP
 
               {filteredEntries.length >= (limit || 100) && (
                 <div className="text-center pt-4">
-                  <p className="text-sm text-tertiary-text">
+                  <p className="text-sm text-gray-400">
                     Showing {filteredEntries.length} transactions. Use filters to refine results.
                   </p>
                 </div>

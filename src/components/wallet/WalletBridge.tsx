@@ -174,21 +174,21 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-            <Network className="text-purple-400 dark:text-purple-300" size={24} />
+            <Network className="text-purple-400" size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-primary-text">Cross-Chain Bridge</h2>
-            <p className="text-sm text-tertiary-text">Transfer assets between blockchains</p>
+            <h2 className="text-2xl font-bold text-white">Cross-Chain Bridge</h2>
+            <p className="text-sm text-gray-400">Transfer assets between blockchains</p>
           </div>
         </div>
 
         {success && (
           <div className="bg-green-900/20 border border-green-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <CheckCircle2 className="text-green-400 dark:text-green-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-green-600 dark:text-green-200">
+            <CheckCircle2 className="text-green-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-green-200">
               Bridge transfer initiated! Estimated completion: {fromChainData?.estimatedTime}
             </div>
           </div>
@@ -196,16 +196,16 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
 
         {error && (
           <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="text-red-400 dark:text-red-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-red-600 dark:text-red-200">{error}</div>
+            <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-red-200">{error}</div>
           </div>
         )}
 
         <div className="space-y-4">
-          <div className="bg-tertiary rounded-xl p-4 border border-secondary">
+          <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-secondary-text">From Chain</span>
-              <span className="text-xs text-tertiary-text">
+              <span className="text-sm font-medium text-gray-300">From Chain</span>
+              <span className="text-xs text-gray-400">
                 Balance: {availableBalance.toFixed(4)} {asset}
               </span>
             </div>
@@ -218,10 +218,10 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
                   disabled={chain.id === toChain}
                   className={`p-3 rounded-lg text-left transition-all ${
                     fromChain === chain.id
-                      ? 'bg-purple-500/20 text-purple-400 dark:text-purple-300 border border-purple-500/50'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
                       : chain.id === toChain
-                      ? 'bg-tertiary text-tertiary-text cursor-not-allowed opacity-50'
-                      : 'bg-secondary text-secondary-text hover:bg-tertiary'
+                      ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -239,11 +239,11 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.0"
                 step="0.0001"
-                className="w-full px-4 py-3 bg-secondary border border-secondary rounded-lg text-primary-text text-lg font-semibold focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white text-lg font-semibold focus:outline-none focus:border-purple-500"
               />
               <button
                 onClick={handleMaxAmount}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded bg-purple-500/20 text-purple-400 dark:text-purple-300 text-sm font-medium hover:bg-purple-500/30 transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded bg-purple-500/20 text-purple-400 text-sm font-medium hover:bg-purple-500/30 transition-colors"
               >
                 MAX
               </button>
@@ -253,16 +253,16 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
           <div className="flex justify-center -my-2 relative z-10">
             <button
               onClick={handleFlipChains}
-              className="p-3 rounded-full bg-tertiary hover:bg-secondary border-4 border-primary transition-all hover:rotate-180 duration-300"
+              className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 border-4 border-gray-900 transition-all hover:rotate-180 duration-300"
             >
-              <ArrowRight className="text-purple-400 dark:text-purple-300" size={20} />
+              <ArrowRight className="text-purple-400" size={20} />
             </button>
           </div>
 
-          <div className="bg-tertiary rounded-xl p-4 border border-secondary">
+          <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-secondary-text">To Chain</span>
-              <span className="text-xs text-tertiary-text">
+              <span className="text-sm font-medium text-gray-300">To Chain</span>
+              <span className="text-xs text-gray-400">
                 Receive: {netAmount.toFixed(4)} {asset}
               </span>
             </div>
@@ -275,10 +275,10 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
                   disabled={chain.id === fromChain}
                   className={`p-3 rounded-lg text-left transition-all ${
                     toChain === chain.id
-                      ? 'bg-purple-500/20 text-purple-400 dark:text-purple-300 border border-purple-500/50'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
                       : chain.id === fromChain
-                      ? 'bg-tertiary text-tertiary-text cursor-not-allowed opacity-50'
-                      : 'bg-secondary text-secondary-text hover:bg-tertiary'
+                      ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -294,12 +294,12 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
               value={destinationAddress}
               onChange={(e) => setDestinationAddress(e.target.value)}
               placeholder={`Destination address on ${toChainData?.name}`}
-              className="w-full px-4 py-3 bg-secondary border border-secondary rounded-lg text-primary-text font-mono text-sm focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-purple-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Select Asset to Bridge
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -309,8 +309,8 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
                   onClick={() => setAsset(assetOption)}
                   className={`p-3 rounded-lg font-medium transition-all ${
                     asset === assetOption
-                      ? 'bg-purple-500/20 text-purple-400 dark:text-purple-300 border border-purple-500/50'
-                      : 'bg-secondary text-secondary-text hover:bg-tertiary'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
                   {assetOption}
@@ -321,38 +321,38 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
         </div>
 
         {amount && parseFloat(amount) > 0 && (
-          <div className="mt-6 bg-tertiary rounded-lg p-4">
-            <h3 className="font-semibold text-primary-text mb-3">Bridge Summary</h3>
+          <div className="mt-6 bg-gray-700/50 rounded-lg p-4">
+            <h3 className="font-semibold text-white mb-3">Bridge Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Bridge Amount:</span>
-                <span className="font-mono text-primary-text">{amountNum.toFixed(6)} {asset}</span>
+                <span className="text-gray-400">Bridge Amount:</span>
+                <span className="font-mono text-white">{amountNum.toFixed(6)} {asset}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Bridge Fee ({(bridgeFee * 100).toFixed(1)}%):</span>
-                <span className="font-mono text-purple-400 dark:text-purple-300">-{feeAmount.toFixed(6)} {asset}</span>
+                <span className="text-gray-400">Bridge Fee ({(bridgeFee * 100).toFixed(1)}%):</span>
+                <span className="font-mono text-purple-400">-{feeAmount.toFixed(6)} {asset}</span>
               </div>
               <div className="ml-4 space-y-1 text-xs">
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Protocol (60%):</span>
                   <span className="font-mono">{protocolFee.toFixed(6)}</span>
                 </div>
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Charity (30%):</span>
                   <span className="font-mono">{charityFee.toFixed(6)}</span>
                 </div>
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Academy (10%):</span>
                   <span className="font-mono">{academyFee.toFixed(6)}</span>
                 </div>
               </div>
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Estimated Time:</span>
-                <span className="text-primary-text">{fromChainData?.estimatedTime}</span>
+                <span className="text-gray-400">Estimated Time:</span>
+                <span className="text-white">{fromChainData?.estimatedTime}</span>
               </div>
-              <div className="flex justify-between border-t border-secondary pt-2 font-semibold">
-                <span className="text-primary-text">You will receive:</span>
-                <span className="font-mono text-green-400 dark:text-green-300">{netAmount.toFixed(6)} {asset}</span>
+              <div className="flex justify-between border-t border-gray-600 pt-2 font-semibold">
+                <span className="text-white">You will receive:</span>
+                <span className="font-mono text-green-400">{netAmount.toFixed(6)} {asset}</span>
               </div>
             </div>
           </div>
@@ -378,8 +378,8 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
 
         <div className="mt-6 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Info className="text-blue-400 dark:text-blue-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-blue-600 dark:text-blue-200">
+            <Info className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-blue-200">
               <div className="font-semibold mb-2">How Bridge Works:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>Assets are locked on source chain</li>
@@ -393,8 +393,8 @@ export default function WalletBridge({ onSuccess }: WalletBridgeProps) {
 
         <div className="mt-4 bg-amber-900/20 border border-amber-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Shield className="text-amber-400 dark:text-amber-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-amber-600 dark:text-amber-200">
+            <Shield className="text-amber-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-amber-200">
               <div className="font-semibold mb-2">Important Notes:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>Verify destination address carefully</li>

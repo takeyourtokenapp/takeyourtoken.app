@@ -184,21 +184,21 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
 
   return (
     <div className="space-y-6">
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
-            <ArrowRightLeft className="text-blue-500 dark:text-blue-400" size={24} />
+            <ArrowRightLeft className="text-blue-400" size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-primary-text">Swap Tokens</h2>
-            <p className="text-sm text-tertiary-text">Exchange between supported assets</p>
+            <h2 className="text-2xl font-bold text-white">Swap Tokens</h2>
+            <p className="text-sm text-gray-400">Exchange between supported assets</p>
           </div>
         </div>
 
         {success && (
           <div className="bg-green-900/20 border border-green-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <CheckCircle2 className="text-green-500 dark:text-green-400 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-green-600 dark:text-green-200">
+            <CheckCircle2 className="text-green-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-green-200">
               Swap completed successfully! Your balances have been updated.
             </div>
           </div>
@@ -206,16 +206,16 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
 
         {error && (
           <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-red-600 dark:text-red-200">{error}</div>
+            <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-red-200">{error}</div>
           </div>
         )}
 
         <div className="space-y-4">
-          <div className="bg-tertiary/50 rounded-xl p-4 border border-secondary">
+          <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-tertiary-text">From</span>
-              <span className="text-xs text-tertiary-text">
+              <span className="text-sm text-gray-400">From</span>
+              <span className="text-xs text-gray-400">
                 Balance: {fromTokenData?.balance.toFixed(fromToken === 'BTC' ? 8 : 4) || '0'}
               </span>
             </div>
@@ -224,7 +224,7 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
               <select
                 value={fromToken}
                 onChange={(e) => setFromToken(e.target.value)}
-                className="px-4 py-2 bg-secondary border border-secondary rounded-lg text-primary-text font-semibold focus:outline-none focus:border-blue-500"
+                className="px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white font-semibold focus:outline-none focus:border-blue-500"
               >
                 {tokens.map((token) => (
                   <option key={token.symbol} value={token.symbol} disabled={token.symbol === toToken}>
@@ -240,11 +240,11 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
                   onChange={(e) => setFromAmount(e.target.value)}
                   placeholder="0.0"
                   step="0.0001"
-                  className="w-full px-4 py-2 bg-secondary border border-secondary rounded-lg text-primary-text text-right text-xl font-semibold focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-right text-xl font-semibold focus:outline-none focus:border-blue-500"
                 />
                 <button
                   onClick={handleMaxAmount}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded bg-blue-500/20 text-blue-500 dark:text-blue-400 text-xs font-medium hover:bg-blue-500/30 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/30 transition-colors"
                 >
                   MAX
                 </button>
@@ -252,7 +252,7 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
             </div>
 
             {fromAmount && parseFloat(fromAmount) > 0 && (
-              <div className="text-xs text-tertiary-text mt-2 text-right">
+              <div className="text-xs text-gray-400 mt-2 text-right">
                 ≈ ${(parseFloat(fromAmount) * (fromTokenData?.usdPrice || 0)).toFixed(2)} USD
               </div>
             )}
@@ -261,16 +261,16 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
           <div className="flex justify-center -my-2 relative z-10">
             <button
               onClick={handleFlipTokens}
-              className="p-3 rounded-full bg-tertiary hover:bg-secondary border-4 border-primary transition-all hover:rotate-180 duration-300"
+              className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 border-4 border-gray-900 transition-all hover:rotate-180 duration-300"
             >
-              <ArrowUpDown className="text-blue-500 dark:text-blue-400" size={20} />
+              <ArrowUpDown className="text-blue-400" size={20} />
             </button>
           </div>
 
-          <div className="bg-tertiary/50 rounded-xl p-4 border border-secondary">
+          <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-tertiary-text">To</span>
-              <span className="text-xs text-tertiary-text">
+              <span className="text-sm text-gray-400">To</span>
+              <span className="text-xs text-gray-400">
                 Balance: {toTokenData?.balance.toFixed(toToken === 'BTC' ? 8 : 4) || '0'}
               </span>
             </div>
@@ -279,7 +279,7 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
               <select
                 value={toToken}
                 onChange={(e) => setToToken(e.target.value)}
-                className="px-4 py-2 bg-secondary border border-secondary rounded-lg text-primary-text font-semibold focus:outline-none focus:border-blue-500"
+                className="px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white font-semibold focus:outline-none focus:border-blue-500"
               >
                 {tokens.map((token) => (
                   <option key={token.symbol} value={token.symbol} disabled={token.symbol === fromToken}>
@@ -293,12 +293,12 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
                 value={toAmount}
                 readOnly
                 placeholder="0.0"
-                className="flex-1 px-4 py-2 bg-secondary border border-secondary rounded-lg text-primary-text text-right text-xl font-semibold focus:outline-none"
+                className="flex-1 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-right text-xl font-semibold focus:outline-none"
               />
             </div>
 
             {toAmount && parseFloat(toAmount) > 0 && (
-              <div className="text-xs text-tertiary-text mt-2 text-right">
+              <div className="text-xs text-gray-400 mt-2 text-right">
                 ≈ ${(parseFloat(toAmount) * (toTokenData?.usdPrice || 0)).toFixed(2)} USD
               </div>
             )}
@@ -306,37 +306,37 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
         </div>
 
         {fromAmount && parseFloat(fromAmount) > 0 && (
-          <div className="mt-6 bg-tertiary/50 rounded-lg p-4">
+          <div className="mt-6 bg-gray-700/50 rounded-lg p-4">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Exchange Rate:</span>
-                <span className="font-mono text-primary-text">1 {fromToken} = {exchangeRate} {toToken}</span>
+                <span className="text-gray-400">Exchange Rate:</span>
+                <span className="font-mono text-white">1 {fromToken} = {exchangeRate} {toToken}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Swap Fee (0.3%):</span>
-                <span className="font-mono text-blue-500 dark:text-blue-400">${totalFee.toFixed(4)}</span>
+                <span className="text-gray-400">Swap Fee (0.3%):</span>
+                <span className="font-mono text-blue-400">${totalFee.toFixed(4)}</span>
               </div>
               <div className="ml-4 space-y-1 text-xs">
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Protocol (60%):</span>
                   <span className="font-mono">${protocolFee.toFixed(4)}</span>
                 </div>
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Charity (30%):</span>
                   <span className="font-mono">${charityFee.toFixed(4)}</span>
                 </div>
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Academy (10%):</span>
                   <span className="font-mono">${academyFee.toFixed(4)}</span>
                 </div>
               </div>
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Slippage Tolerance:</span>
-                <span className="text-primary-text">{slippage}%</span>
+                <span className="text-gray-400">Slippage Tolerance:</span>
+                <span className="text-white">{slippage}%</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Price Impact:</span>
-                <span className={priceImpact > 1 ? 'text-amber-400' : 'text-green-500 dark:text-green-400'}>
+                <span className="text-gray-400">Price Impact:</span>
+                <span className={priceImpact > 1 ? 'text-amber-400' : 'text-green-400'}>
                   {priceImpact.toFixed(2)}%
                 </span>
               </div>
@@ -346,7 +346,7 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
 
         <div className="mt-6 flex gap-2">
           <div className="flex-1">
-            <label className="block text-xs text-tertiary-text mb-2">Slippage Tolerance</label>
+            <label className="block text-xs text-gray-400 mb-2">Slippage Tolerance</label>
             <div className="flex gap-2">
               {[0.1, 0.5, 1.0].map((value) => (
                 <button
@@ -354,8 +354,8 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
                   onClick={() => setSlippage(value)}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     slippage === value
-                      ? 'bg-blue-500/20 text-blue-500 dark:text-blue-400 border border-blue-500/50'
-                      : 'bg-tertiary text-secondary-text hover:bg-secondary'
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
                   {value}%
@@ -385,8 +385,8 @@ export default function WalletSwap({ selectedAsset, onSuccess }: WalletSwapProps
 
         <div className="mt-6 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Info className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-blue-600 dark:text-blue-200">
+            <Info className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-blue-200">
               <div className="font-semibold mb-2">Swap Details:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>Instant execution</li>

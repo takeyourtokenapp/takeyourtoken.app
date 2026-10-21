@@ -14,7 +14,7 @@ import {
   Heart,
   Clock
 } from 'lucide-react';
-import VIPBenefitsCalculator from '../components/calculators/VIPBenefitsCalculator';
+import VIPBenefitsCalculator from '../components/VIPBenefitsCalculator';
 
 export default function VIP() {
   const vipLevels = [

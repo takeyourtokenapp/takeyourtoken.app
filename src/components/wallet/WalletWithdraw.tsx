@@ -75,9 +75,9 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
 
       if (!data) {
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('kyc_status')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         if (profile?.kyc_status !== 'approved') {
@@ -173,13 +173,13 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
         <div className="flex items-start gap-4">
           <Shield className="text-amber-400 flex-shrink-0 mt-1" size={32} />
           <div>
-            <h3 className="text-xl font-bold text-primary-text mb-2">KYC Verification Required</h3>
+            <h3 className="text-xl font-bold text-white mb-2">KYC Verification Required</h3>
             <p className="text-amber-200 mb-4">
               To withdraw funds, you need to complete KYC verification. This is required by regulations to prevent fraud and money laundering.
             </p>
             <a
               href="/app/kyc"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-primary-text font-semibold transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold transition-all"
             >
               <Shield size={18} />
               Complete KYC Verification
@@ -192,21 +192,21 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
 
   return (
     <div className="space-y-6">
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center">
-            <ArrowUpRight className="text-orange-400 dark:text-orange-300" size={24} />
+            <ArrowUpRight className="text-orange-400" size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-primary-text">Withdraw Funds</h2>
-            <p className="text-sm text-tertiary-text">Send crypto to external address</p>
+            <h2 className="text-2xl font-bold text-white">Withdraw Funds</h2>
+            <p className="text-sm text-gray-400">Send crypto to external address</p>
           </div>
         </div>
 
         {success && (
           <div className="bg-green-900/20 border border-green-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <CheckCircle2 className="text-green-400 dark:text-green-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-green-600 dark:text-green-200">
+            <CheckCircle2 className="text-green-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-green-200">
               Withdrawal request submitted successfully! It will be processed within 24 hours.
             </div>
           </div>
@@ -214,14 +214,14 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
 
         {error && (
           <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="text-red-400 dark:text-red-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-red-600 dark:text-red-200">{error}</div>
+            <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-red-200">{error}</div>
           </div>
         )}
 
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Select Asset
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -236,10 +236,10 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
                     disabled={balance === 0}
                     className={`p-3 rounded-lg font-medium transition-all ${
                       asset === assetOption
-                        ? 'bg-orange-500/20 text-orange-400 dark:text-orange-300 border border-orange-500/50'
+                        ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
                         : balance === 0
-                        ? 'bg-tertiary text-tertiary-text cursor-not-allowed opacity-50'
-                        : 'bg-secondary text-secondary-text hover:bg-tertiary'
+                        ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                     }`}
                   >
                     <div>{assetOption}</div>
@@ -251,23 +251,23 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Available Balance
             </label>
-            <div className="bg-secondary/50 rounded-lg p-4">
+            <div className="bg-gray-700/50 rounded-lg p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="text-2xl font-bold text-primary-text">
+                  <div className="text-2xl font-bold text-white">
                     {availableBalance.toFixed(asset === 'BTC' ? 8 : 4)} {asset}
                   </div>
-                  <div className="text-sm text-tertiary-text">
+                  <div className="text-sm text-gray-400">
                     ≈ ${(availableBalance * (ASSET_PRICES[asset] || 0)).toFixed(2)} USD
                   </div>
                 </div>
                 {lockedBalance > 0 && (
                   <div className="text-right">
-                    <div className="text-sm text-tertiary-text">Locked</div>
-                    <div className="text-lg font-semibold text-gold-400 dark:text-gold-300">
+                    <div className="text-sm text-gray-400">Locked</div>
+                    <div className="text-lg font-semibold text-gold-400">
                       {lockedBalance.toFixed(asset === 'BTC' ? 8 : 4)}
                     </div>
                   </div>
@@ -277,7 +277,7 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Withdrawal Amount
             </label>
             <div className="relative">
@@ -289,24 +289,24 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
                 step={asset === 'BTC' ? '0.0001' : '0.01'}
                 min={minWithdrawal}
                 max={availableBalance}
-                className="w-full px-4 py-3 bg-secondary border border-secondary rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:border-orange-500"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
               />
               <button
                 onClick={handleMaxAmount}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded bg-orange-500/20 text-orange-400 dark:text-orange-300 text-sm font-medium hover:bg-orange-500/30 transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded bg-orange-500/20 text-orange-400 text-sm font-medium hover:bg-orange-500/30 transition-colors"
               >
                 MAX
               </button>
             </div>
             {amountNum > 0 && (
-              <div className="text-xs text-tertiary-text mt-1">
+              <div className="text-xs text-gray-400 mt-1">
                 ≈ ${(amountNum * (ASSET_PRICES[asset] || 0)).toFixed(2)} USD
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Destination Address
             </label>
             <input
@@ -314,13 +314,13 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder={`Enter ${asset} address`}
-              className="w-full px-4 py-3 bg-secondary border border-secondary rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:border-orange-500 font-mono text-sm"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 font-mono text-sm"
             />
           </div>
 
           {['XRP', 'TON'].includes(asset) && (
             <div>
-              <label className="block text-sm font-medium text-secondary-text mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Memo / Tag (Optional)
               </label>
               <input
@@ -328,19 +328,19 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 placeholder="Enter memo or destination tag"
-                className="w-full px-4 py-3 bg-secondary border border-secondary rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:border-orange-500"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Network
             </label>
             <select
               value={network}
               onChange={(e) => setNetwork(e.target.value)}
-              className="w-full px-4 py-3 bg-secondary border border-secondary rounded-lg text-primary-text focus:outline-none focus:border-orange-500"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-orange-500"
             >
               <option value="mainnet">Mainnet</option>
               {asset === 'BTC' && <option value="lightning">Lightning Network</option>}
@@ -350,34 +350,34 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
         </div>
 
         {amountNum > 0 && (
-          <div className="bg-secondary/50 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-primary-text mb-3">Transaction Summary</h3>
+          <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-white mb-3">Transaction Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Withdrawal Amount:</span>
-                <span className="font-mono text-primary-text">{amountNum.toFixed(8)} {asset}</span>
+                <span className="text-gray-400">Withdrawal Amount:</span>
+                <span className="font-mono text-white">{amountNum.toFixed(8)} {asset}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-tertiary-text">Total Fee (1%):</span>
-                <span className="font-mono text-orange-400 dark:text-orange-300">-{feeAmount.toFixed(8)} {asset}</span>
+                <span className="text-gray-400">Total Fee (1%):</span>
+                <span className="font-mono text-orange-400">-{feeAmount.toFixed(8)} {asset}</span>
               </div>
               <div className="ml-4 space-y-1 text-xs">
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Protocol (60%):</span>
                   <span className="font-mono">{protocolFee.toFixed(8)}</span>
                 </div>
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Charity (30%):</span>
                   <span className="font-mono">{charityFee.toFixed(8)}</span>
                 </div>
-                <div className="flex justify-between text-tertiary-text">
+                <div className="flex justify-between text-gray-500">
                   <span>• Academy (10%):</span>
                   <span className="font-mono">{academyFee.toFixed(8)}</span>
                 </div>
               </div>
-              <div className="flex justify-between border-t border-secondary pt-2 font-semibold">
-                <span className="text-primary-text">You will receive:</span>
-                <span className="font-mono text-green-400 dark:text-green-300">{netAmount.toFixed(8)} {asset}</span>
+              <div className="flex justify-between border-t border-gray-600 pt-2 font-semibold">
+                <span className="text-white">You will receive:</span>
+                <span className="font-mono text-green-400">{netAmount.toFixed(8)} {asset}</span>
               </div>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
         <button
           onClick={handleWithdraw}
           disabled={loading || !isValidAddress || !isValidAmount}
-          className="w-full py-4 rounded-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-primary-text font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -403,8 +403,8 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
 
         <div className="mt-6 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Info className="text-blue-400 dark:text-blue-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-blue-600 dark:text-blue-200">
+            <Info className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-blue-200">
               <div className="font-semibold mb-2">Processing Time:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>Standard withdrawals: 24-48 hours</li>
@@ -417,8 +417,8 @@ export default function WalletWithdraw({ selectedAsset, onSuccess }: WalletWithd
 
         <div className="mt-4 bg-amber-900/20 border border-amber-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Clock className="text-amber-400 dark:text-amber-300 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-amber-600 dark:text-amber-200">
+            <Clock className="text-amber-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-amber-200">
               <div className="font-semibold mb-2">Important Notes:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>Double-check the destination address</li>

@@ -31,11 +31,11 @@ export interface PriceData {
 }
 
 const BLOCKCHAIN_RPCS = {
-  bitcoin: import.meta.env.VITE_BITCOIN_RPC || 'https://blockstream.info/api',
-  ethereum: import.meta.env.VITE_ETHEREUM_RPC || 'https://eth.llamarpc.com',
-  solana: import.meta.env.VITE_SOLANA_RPC || 'https://api.mainnet-beta.solana.com',
-  tron: import.meta.env.VITE_TRON_RPC || 'https://api.trongrid.io',
-  xrp: import.meta.env.VITE_XRP_RPC || 'https://s1.ripple.com:51234'
+  bitcoin: process.env.VITE_BITCOIN_RPC || 'https://blockstream.info/api',
+  ethereum: process.env.VITE_ETHEREUM_RPC || 'https://eth.llamarpc.com',
+  solana: process.env.VITE_SOLANA_RPC || 'https://api.mainnet-beta.solana.com',
+  tron: process.env.VITE_TRON_RPC || 'https://api.trongrid.io',
+  xrp: process.env.VITE_XRP_RPC || 'https://s1.ripple.com:51234'
 };
 
 const PRICE_API = 'https://api.coingecko.com/api/v3';
@@ -265,7 +265,7 @@ export async function getAssetPrice(symbol: string): Promise<PriceData> {
 
 export async function getTYTPriceFromPumpFun(): Promise<PriceData> {
   try {
-    const TYT_TOKEN_ADDRESS = import.meta.env.VITE_TYT_TOKEN_MINT || 'TYTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+    const TYT_TOKEN_ADDRESS = process.env.VITE_TYT_TOKEN_ADDRESS || 'TYTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
     const response = await fetch(`https://frontend-api.pump.fun/coins/${TYT_TOKEN_ADDRESS}`);
 

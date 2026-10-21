@@ -58,46 +58,20 @@ export async function getSupportedNetworks(): Promise<BlockchainNetwork[]> {
 }
 
 export async function getDepositAddresses(): Promise<DepositAddress[]> {
-  try {
-    const { data: addresses, error } = await supabase
-      .from('custodial_addresses')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('user_deposit_addresses')
+    .select(`
+      *,
+      blockchain_networks (*)
+    `)
+    .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching deposit addresses:', error);
-      return [];
-    }
-
-    if (!addresses || addresses.length === 0) {
-      console.log('No addresses found, returning empty array');
-      return [];
-    }
-
-    // Map blockchain names to network codes for compatibility
-    const blockchainToNetworkCode: Record<string, string> = {
-      'ethereum': 'ETH',
-      'bsc': 'BSC',
-      'polygon': 'POLYGON',
-      'solana': 'SOL',
-      'tron': 'TRON',
-      'bitcoin': 'BTC'
-    };
-
-    // Transform custodial_addresses to DepositAddress format
-    return addresses.map(addr => ({
-      id: addr.id,
-      network_code: blockchainToNetworkCode[addr.blockchain] || addr.blockchain.toUpperCase(),
-      address: addr.address,
-      is_verified: true,
-      created_at: addr.created_at,
-      derivation_path: addr.derivation_path
-    }));
-  } catch (error) {
-    console.error('Error in getDepositAddresses:', error);
+  if (error) {
+    console.error('Error fetching deposit addresses:', error);
     return [];
   }
+
+  return data || [];
 }
 
 export async function generateDepositAddress(networkCode: string): Promise<{
@@ -235,19 +209,12 @@ export async function triggerDepositMonitoring(): Promise<{
   error?: string;
 }> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      throw new Error('Not authenticated');
-    }
-
     const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/trigger-deposit-monitor`,
+      `${SUPABASE_URL}/functions/v1/monitor-deposits?secret=${import.meta.env.VITE_CRON_SECRET || 'change-in-production'}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
         },
       }
     );

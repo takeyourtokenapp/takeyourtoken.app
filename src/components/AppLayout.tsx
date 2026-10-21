@@ -1,14 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useAoi } from '../contexts/AoiContext';
-import { useAdminCheck } from '../hooks/useAdminCheck';
-import AoiAvatar from './AoiAvatar';
-import AoiChatWidget from './AoiChatWidget';
-import ThemeToggle from './ThemeToggle';
-import LanguageSelector from './LanguageSelector';
-import { OrbitalBadge } from './OrbitalBadge';
-import { getTYTLogoUrl } from '../config/aoiConfig';
 import {
   LayoutDashboard,
   Cpu,
@@ -46,7 +38,6 @@ import {
   Shield,
   FileCheck,
   DollarSign,
-  GitBranch,
   type LucideIcon
 } from 'lucide-react';
 
@@ -69,22 +60,16 @@ interface NavGroup {
 export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['mining', 'finance']);
-  const [aoiChatOpen, setAoiChatOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { progress } = useAoi();
-  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const location = useLocation();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      console.log('Signing out...');
       await signOut();
-      console.log('Sign out successful, redirecting to home...');
-      navigate('/', { replace: true });
+      navigate('/');
     } catch (error) {
       console.error('Failed to sign out:', error);
-      alert('Failed to sign out. Please try again.');
     }
   };
 
@@ -96,22 +81,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     );
   };
 
-  const adminGroup: NavGroup = {
-    id: 'admin',
-    label: 'Administration',
-    icon: Shield,
-    color: 'red',
-    items: [
-      { path: '/app/admin/dashboard', icon: LayoutDashboard, label: 'Admin Dashboard' },
-      { path: '/app/admin/messages', icon: MessageCircle, label: 'Messages' },
-      { path: '/app/admin/users', icon: Users, label: 'User Management' },
-      { path: '/app/admin/withdrawals', icon: DollarSign, label: 'Withdrawals' },
-      { path: '/app/admin/contracts', icon: FileCheck, label: 'Smart Contracts' },
-    ]
-  };
-
   const navGroups: NavGroup[] = [
-    ...(isAdmin ? [adminGroup] : []),
     {
       id: 'mining',
       label: 'Mining Ecosystem',
@@ -123,7 +93,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
         { path: '/app/data-center', icon: Server, label: 'Data Centers' },
         { path: '/app/rewards', icon: TrendingUp, label: 'Rewards' },
         { path: '/app/marketplace', icon: ShoppingCart, label: 'Marketplace' },
-        { path: '/app/marketplace/actions', icon: RefreshCw, label: 'My Listings & Offers' },
       ]
     },
     {
@@ -133,10 +102,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
       color: 'green',
       items: [
         { path: '/app/wallet', icon: Wallet, label: 'Wallet' },
-        { path: '/app/swap', icon: ArrowLeftRight, label: 'Swap' },
-        { path: '/app/bridge', icon: GitBranch, label: 'Bridge' },
-        { path: '/app/tyt-trading', icon: Zap, label: 'TYT Trading' },
         { path: '/app/transactions', icon: Receipt, label: 'Transactions' },
+        { path: '/app/tyt-trading', icon: Zap, label: 'TYT Trading' },
         { path: '/app/burn-reports', icon: Flame, label: 'Burn Reports' },
         { path: '/app/governance', icon: Vote, label: 'Governance' },
       ]
@@ -148,7 +115,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
       color: 'blue',
       items: [
         { path: '/app/academy', icon: BookOpen, label: 'Lessons' },
-        { path: '/app/aoi', icon: MessageCircle, label: 'aOi Profile' },
         { path: '/app/quests', icon: Target, label: 'Quests' },
         { path: '/app/calculators', icon: Calculator, label: 'Calculators' },
         { path: '/app/certificates', icon: Award, label: 'Certificates' },
@@ -175,6 +141,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         { path: '/app/leaderboard', icon: Trophy, label: 'Leaderboard' },
         { path: '/app/clans', icon: Shield, label: 'Clans & Wars' },
         { path: '/app/referrals', icon: Users, label: 'Referrals' },
+        { path: '/community', icon: MessageCircle, label: 'Forum' },
       ]
     },
   ];
@@ -207,39 +174,30 @@ export default function AppLayout({ children }: AppLayoutProps) {
       blue: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/50' },
       pink: { bg: 'bg-pink-500/20', text: 'text-pink-400', border: 'border-pink-500/50' },
       cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/50' },
-      red: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/50' },
     };
     return colors[color] || colors.amber;
   };
 
   return (
-    <div className="min-h-screen bg-primary text-primary-text">
+    <div className="min-h-screen bg-gradient-to-b from-owl-dark via-owl-navy to-black text-white">
       <div className="flex">
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-72 bg-secondary backdrop-blur-sm border-r border-secondary transform transition-transform duration-300 lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-50 w-72 backdrop-blur-glass border-r border-gold-800 transform transition-transform duration-300 lg:translate-x-0 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-5 border-b border-secondary">
+            <div className="flex items-center justify-between p-5 border-b border-gold-800">
               <Link to="/app" className="flex items-center gap-3 group">
-                <img
-                  src={getTYTLogoUrl()}
-                  alt="TYT"
-                  className="w-10 h-10 group-hover:drop-shadow-[0_0_10px_rgba(210,164,76,0.6)] transition-all"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
+                <img src="/6d629383-acba-4396-8f01-4715f914aada.png" alt="TYT" className="w-10 h-10 group-hover:drop-shadow-[0_0_10px_rgba(210,164,76,0.6)] transition-all" />
                 <div>
-                  <span className="text-xl font-bold bg-owl-gradient bg-clip-text text-transparent">Take Your Token</span>
-                  <div className="text-xs text-secondary-text">Owl Warrior Ecosystem</div>
+                  <span className="text-xl font-bold bg-owl-gradient bg-clip-text text-transparent">TakeYourToken</span>
+                  <div className="text-xs text-gray-400">Owl Warrior Platform</div>
                 </div>
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden p-1 rounded hover:bg-tertiary"
+                className="lg:hidden p-1 rounded hover:bg-gray-800"
               >
                 <X size={20} />
               </button>
@@ -248,7 +206,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <nav className="flex-1 p-3 overflow-y-auto custom-scrollbar">
               <div className="space-y-1">
                 {navGroups.map((group) => {
-                  const GroupIcon = group.icon || LayoutDashboard;
+                  const GroupIcon = group.icon;
                   const isExpanded = expandedGroups.includes(group.id);
                   const groupActive = isGroupActive(group);
                   const colorClasses = getColorClasses(group.color, groupActive);
@@ -260,7 +218,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
                           groupActive
                             ? `${colorClasses.bg} ${colorClasses.text} border ${colorClasses.border}`
-                            : 'hover:bg-tertiary text-secondary-text border border-transparent'
+                            : 'hover:bg-gray-800/50 text-gray-300 border border-transparent'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -268,16 +226,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           <span className="text-sm font-semibold">{group.label}</span>
                         </div>
                         {isExpanded ? (
-                          <ChevronDown size={16} className="text-tertiary-text" />
+                          <ChevronDown size={16} className="text-gray-500" />
                         ) : (
-                          <ChevronRight size={16} className="text-tertiary-text" />
+                          <ChevronRight size={16} className="text-gray-500" />
                         )}
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-1 ml-3 pl-3 border-l border-secondary space-y-0.5">
+                        <div className="mt-1 ml-3 pl-3 border-l border-gray-700/50 space-y-0.5">
                           {group.items.map((item) => {
-                            const Icon = item.icon || LayoutDashboard;
+                            const Icon = item.icon;
                             const active = isActive(item.path);
 
                             return (
@@ -288,7 +246,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
                                   active
                                     ? `${colorClasses.bg} ${colorClasses.text}`
-                                    : 'hover:bg-tertiary text-tertiary-text hover:text-secondary-text'
+                                    : 'hover:bg-gray-800/30 text-gray-400 hover:text-gray-200'
                                 }`}
                               >
                                 <Icon size={16} />
@@ -303,13 +261,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 })}
               </div>
 
-              <div className="border-t border-secondary mt-4 pt-4">
-                <div className="px-3 py-2 text-xs font-semibold text-tertiary-text uppercase tracking-wider">
+              <div className="border-t border-gray-700/50 mt-4 pt-4">
+                <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Account
                 </div>
                 <div className="space-y-0.5 mt-1">
                   {accountItems.map((item) => {
-                    const Icon = item.icon || User;
+                    const Icon = item.icon;
                     const active = isActive(item.path);
 
                     return (
@@ -320,7 +278,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
                           active
                             ? 'bg-gold-500/20 text-gold-400 border border-gold-500/50'
-                            : 'hover:bg-tertiary text-tertiary-text hover:text-secondary-text border border-transparent'
+                            : 'hover:bg-gray-800/30 text-gray-400 hover:text-gray-200 border border-transparent'
                         }`}
                       >
                         <Icon size={16} />
@@ -332,20 +290,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </div>
             </nav>
 
-            <div className="p-3 border-t border-secondary space-y-3">
-              <div className="lg:hidden space-y-2">
-                <ThemeToggle />
-                <LanguageSelector />
-              </div>
-
-              <div className="p-3 bg-tertiary rounded-lg border border-secondary">
+            <div className="p-3 border-t border-gold-800">
+              <div className="mb-3 p-3 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-lg border border-gray-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-sm font-bold text-white">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-sm font-bold">
                     {user?.email?.[0].toUpperCase() || 'U'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-primary-text truncate">{user?.email?.split('@')[0]}</div>
-                    <div className="text-xs text-tertiary-text truncate">{user?.email}</div>
+                    <div className="text-sm font-semibold truncate">{user?.email?.split('@')[0]}</div>
+                    <div className="text-xs text-gray-500 truncate">{user?.email}</div>
                   </div>
                 </div>
               </div>
@@ -361,7 +314,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </aside>
 
         <div className="flex-1 lg:ml-72">
-          <header className="sticky top-0 z-40 bg-secondary/80 backdrop-blur-sm border-b border-secondary px-6 py-4">
+          <header className="sticky top-0 z-40 backdrop-blur-glass border-b border-gold-800 px-6 py-4">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -370,41 +323,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <Menu size={24} />
               </button>
 
-              <div className="flex items-center gap-3 ml-auto">
-                <div className="hidden lg:block">
-                  <ThemeToggle />
-                </div>
-                <div className="hidden lg:block">
-                  <LanguageSelector />
-                </div>
-                <AoiAvatar
-                  level={progress?.level || 1}
-                  size="md"
-                  interactive
-                  showLevel
-                  onInteract={() => setAoiChatOpen(true)}
-                />
+              <div className="flex items-center gap-4 ml-auto">
                 <Link
                   to="/app/notifications"
-                  className="relative p-2 rounded-lg hover:bg-tertiary transition-colors"
+                  className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
                 >
-                  <Bell size={20} className="text-tertiary-text" />
+                  <Bell size={20} className="text-gray-400" />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
                 </Link>
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/30">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="text-sm font-semibold text-amber-400">Worker Owl</span>
-                  </div>
-                  <Link to="/app/orbital">
-                    <OrbitalBadge type="reward" verified={true} size="md" />
-                  </Link>
+                <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/30">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-amber-400">Worker Owl</span>
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="p-6 bg-primary">
+          <main className="p-6">
             {children}
           </main>
         </div>
@@ -412,16 +347,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 dark:bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-
-      <AoiChatWidget
-        isOpen={aoiChatOpen}
-        onClose={() => setAoiChatOpen(false)}
-        context={{ page: location.pathname }}
-      />
     </div>
   );
 }

@@ -26,7 +26,6 @@ export const config = createConfig({
 export const contractAddresses = {
   feeConfig: (import.meta.env.VITE_CONTRACT_FEE_CONFIG || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   charityVault: (import.meta.env.VITE_CONTRACT_CHARITY_VAULT || '0x0000000000000000000000000000000000000000') as `0x${string}`,
-  academyVault: (import.meta.env.VITE_CONTRACT_ACADEMY_VAULT || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   minerNFT: (import.meta.env.VITE_CONTRACT_MINER_NFT || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   rewardsMerkle: (import.meta.env.VITE_CONTRACT_REWARDS_MERKLE || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   marketplace: (import.meta.env.VITE_CONTRACT_MARKETPLACE || '0x0000000000000000000000000000000000000000') as `0x${string}`

@@ -38,12 +38,8 @@ contract FeeConfig is AccessControl {
     error SplitSumInvalid(uint256 sum, uint256 expected);
     error ZeroAddressRecipient();
     error ProfileNotFound(bytes32 key);
-    error ZeroAddress();
 
     constructor(address admin, address feeSetter) {
-        if (admin == address(0)) revert ZeroAddress();
-        if (feeSetter == address(0)) revert ZeroAddress();
-
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(FEE_SETTER_ROLE, feeSetter);
 

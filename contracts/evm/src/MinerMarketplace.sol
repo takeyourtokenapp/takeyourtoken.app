@@ -59,7 +59,8 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
     mapping(uint256 => Order) public orders;
     mapping(uint256 => uint256) public tokenIdToOrderId;
     uint256[] private _activeOrderIds;
-    mapping(uint256 => uint256) private _orderIdToIndex;  // Maps orderId to its index in _activeOrderIds
+
+    bool public isPaused;
 
     event OrderCreated(
         uint256 indexed orderId,
@@ -85,6 +86,8 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
     );
 
     event FeeConfigUpdated(address newFeeConfig);
+    event FeeProfileKeyUpdated(bytes32 newKey);
+    event MarketplacePaused(bool isPaused);
 
     error OrderNotFound(uint256 orderId);
     error OrderNotActive(uint256 orderId);
@@ -96,8 +99,6 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
     error InvalidPrice();
     error CannotBuyOwnToken();
     error TransferFailed();
-    error PriceTooHigh(uint256 maxPrice, uint256 actualPrice);
-    error OrderExpired(uint256 deadline);
 
     constructor(
         address _feeConfig,
@@ -142,7 +143,6 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
         });
 
         tokenIdToOrderId[tokenId] = orderId;
-        _orderIdToIndex[orderId] = _activeOrderIds.length;
         _activeOrderIds.push(orderId);
 
         emit OrderCreated(orderId, tokenId, msg.sender, paymentToken, price);
@@ -150,22 +150,12 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
         return orderId;
     }
 
-    function fillOrder(
-        uint256 orderId,
-        uint256 maxPrice,
-        uint256 deadline
-    ) external payable whenNotPaused nonReentrant {
-        // Check deadline
-        if (block.timestamp > deadline) revert OrderExpired(deadline);
-
+    function fillOrder(uint256 orderId) external payable whenNotPaused nonReentrant {
         Order storage order = orders[orderId];
 
         if (order.createdAt == 0) revert OrderNotFound(orderId);
         if (order.status != OrderStatus.Active) revert OrderNotActive(orderId);
         if (order.seller == msg.sender) revert CannotBuyOwnToken();
-
-        // Check price protection
-        if (order.price > maxPrice) revert PriceTooHigh(maxPrice, order.price);
 
         bytes32 marketplaceKey = keccak256("marketplace.default");
 
@@ -275,19 +265,13 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function _removeFromActiveOrders(uint256 orderId) internal {
-        uint256 index = _orderIdToIndex[orderId];
-        uint256 lastIndex = _activeOrderIds.length - 1;
-
-        // If the order to remove is not the last one, swap it with the last one
-        if (index != lastIndex) {
-            uint256 lastOrderId = _activeOrderIds[lastIndex];
-            _activeOrderIds[index] = lastOrderId;
-            _orderIdToIndex[lastOrderId] = index;
+        for (uint256 i = 0; i < _activeOrderIds.length; i++) {
+            if (_activeOrderIds[i] == orderId) {
+                _activeOrderIds[i] = _activeOrderIds[_activeOrderIds.length - 1];
+                _activeOrderIds.pop();
+                break;
+            }
         }
-
-        // Remove the last element
-        _activeOrderIds.pop();
-        delete _orderIdToIndex[orderId];
     }
 
     function getOrder(uint256 orderId) external view returns (
@@ -343,25 +327,25 @@ contract MinerMarketplace is AccessControl, ReentrancyGuard, Pausable {
 
     function calculateFeeForPrice(uint256 price) external view returns (
         uint256 feeTotal,
-        uint256 protocolFee,
-        uint256 charityFee,
-        uint256 academyFee
+        address[] memory recipients,
+        uint256[] memory feeAmounts
     ) {
-        bytes32 marketplaceKey = keccak256("marketplace.default");
-        return feeConfig.calculateFees(marketplaceKey, price);
+        return feeConfig.calculateFee(feeProfileKey, price);
     }
 
     function setFeeConfig(address _feeConfig) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        feeConfig = IFeeConfigMarketplace(_feeConfig);
+        feeConfig = FeeConfig(_feeConfig);
         emit FeeConfigUpdated(_feeConfig);
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _pause();
+    function setFeeProfileKey(bytes32 _feeProfileKey) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        feeProfileKey = _feeProfileKey;
+        emit FeeProfileKeyUpdated(_feeProfileKey);
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _unpause();
+    function setPaused(bool _isPaused) external onlyRole(OPERATOR_ROLE) {
+        isPaused = _isPaused;
+        emit MarketplacePaused(_isPaused);
     }
 
     function totalOrders() external view returns (uint256) {

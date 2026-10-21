@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ============================================
-# TYT V3 CONTRACT VERIFICATION SCRIPT
+# TYT V2 CONTRACT VERIFICATION SCRIPT
 # ============================================
-# Verify all deployed contracts on PolygonScan
+# Verify deployed contracts on PolygonScan
 # Run: ./verify-contracts.sh [network]
 # Example: ./verify-contracts.sh amoy
 
@@ -71,7 +71,7 @@ if [ -z "$POLYGONSCAN_API_KEY" ]; then
     exit 1
 fi
 
-print_header "VERIFYING TYT V3 CONTRACTS"
+print_header "VERIFYING TYT V2 CONTRACTS"
 print_info "Network: $NETWORK (Chain ID: $CHAIN_ID)"
 print_info "Reading addresses from: $DEPLOYMENT_FILE"
 echo ""
@@ -82,20 +82,15 @@ CHARITY_VAULT=$(cat $DEPLOYMENT_FILE | jq -r '.charityVault')
 ACADEMY_VAULT=$(cat $DEPLOYMENT_FILE | jq -r '.academyVault')
 MINER_NFT=$(cat $DEPLOYMENT_FILE | jq -r '.minerNFT')
 MARKETPLACE=$(cat $DEPLOYMENT_FILE | jq -r '.marketplace')
-REWARDS_REGISTRY=$(cat $DEPLOYMENT_FILE | jq -r '.rewardsRegistry')
-VETYT=$(cat $DEPLOYMENT_FILE | jq -r '.veTYT')
-TYT_TOKEN=$(cat $DEPLOYMENT_FILE | jq -r '.tytToken')
-DEPLOYER=$(cat $DEPLOYMENT_FILE | jq -r '.deployer')
+REWARDS_MERKLE=$(cat $DEPLOYMENT_FILE | jq -r '.rewardsMerkle')
 
 print_info "Contract Addresses:"
-echo "  FeeConfigGovernance:     $FEE_CONFIG"
-echo "  CharityVault:            $CHARITY_VAULT"
-echo "  AcademyVault:            $ACADEMY_VAULT"
-echo "  MinerNFT:                $MINER_NFT"
-echo "  MinerMarketplace:        $MARKETPLACE"
-echo "  RewardsMerkleRegistry:   $REWARDS_REGISTRY"
-echo "  VotingEscrowTYT:         $VETYT"
-echo "  TYT Token:               $TYT_TOKEN"
+echo "  FeeConfig:     $FEE_CONFIG"
+echo "  CharityVault:  $CHARITY_VAULT"
+echo "  AcademyVault:  $ACADEMY_VAULT"
+echo "  MinerNFT:      $MINER_NFT"
+echo "  Marketplace:   $MARKETPLACE"
+echo "  RewardsMerkle: $REWARDS_MERKLE"
 echo ""
 
 # Function to verify contract
@@ -135,11 +130,11 @@ verify_contract() {
 
 # Verify FeeConfigGovernance
 print_header "1. VERIFYING FEE CONFIG GOVERNANCE"
-FEE_CONFIG_ARGS=$(cast abi-encode "constructor(address,address,address,address)" \
-    $DEPLOYER \
-    $DEPLOYER \
+FEE_CONFIG_ARGS=$(cast abi-encode "constructor(address,address,address,uint256)" \
+    $PROTOCOL_TREASURY \
     $CHARITY_VAULT \
-    $ACADEMY_VAULT)
+    $ACADEMY_VAULT \
+    $TIMELOCK_DURATION)
 verify_contract \
     "FeeConfigGovernance" \
     $FEE_CONFIG \
@@ -148,7 +143,7 @@ verify_contract \
 
 # Verify CharityVault
 print_header "2. VERIFYING CHARITY VAULT"
-CHARITY_ARGS=$(cast abi-encode "constructor(address)" $DEPLOYER)
+CHARITY_ARGS=$(cast abi-encode "constructor(address)" $FEE_CONFIG)
 verify_contract \
     "CharityVault" \
     $CHARITY_VAULT \
@@ -157,7 +152,7 @@ verify_contract \
 
 # Verify AcademyVault
 print_header "3. VERIFYING ACADEMY VAULT"
-ACADEMY_ARGS=$(cast abi-encode "constructor(address)" $DEPLOYER)
+ACADEMY_ARGS=$(cast abi-encode "constructor(address)" $FEE_CONFIG)
 verify_contract \
     "AcademyVault" \
     $ACADEMY_VAULT \
@@ -166,13 +161,7 @@ verify_contract \
 
 # Verify MinerNFT
 print_header "4. VERIFYING MINER NFT"
-MINER_ARGS=$(cast abi-encode "constructor(string,string,string,address,address,uint256)" \
-    "TYT Digital Miner" \
-    "TYTM" \
-    "https://api.takeyourtoken.app/metadata/miners/" \
-    $DEPLOYER \
-    $FEE_CONFIG \
-    100000000000000000)
+MINER_ARGS=$(cast abi-encode "constructor(address)" $FEE_CONFIG)
 verify_contract \
     "MinerNFT" \
     $MINER_NFT \
@@ -181,10 +170,7 @@ verify_contract \
 
 # Verify MinerMarketplace
 print_header "5. VERIFYING MINER MARKETPLACE"
-MARKETPLACE_ARGS=$(cast abi-encode "constructor(address,address,address)" \
-    $FEE_CONFIG \
-    $MINER_NFT \
-    $DEPLOYER)
+MARKETPLACE_ARGS=$(cast abi-encode "constructor(address,address)" $MINER_NFT $FEE_CONFIG)
 verify_contract \
     "MinerMarketplace" \
     $MARKETPLACE \
@@ -193,33 +179,20 @@ verify_contract \
 
 # Verify RewardsMerkleRegistry
 print_header "6. VERIFYING REWARDS MERKLE REGISTRY"
-REWARDS_ARGS=$(cast abi-encode "constructor(address,address)" $DEPLOYER $DEPLOYER)
+MERKLE_ARGS=$(cast abi-encode "constructor(address)" $MINER_NFT)
 verify_contract \
     "RewardsMerkleRegistry" \
-    $REWARDS_REGISTRY \
+    $REWARDS_MERKLE \
     "src/RewardsMerkleRegistry.sol:RewardsMerkleRegistry" \
-    $REWARDS_ARGS
-
-# Verify VotingEscrowTYT
-print_header "7. VERIFYING VOTING ESCROW TYT"
-VETYT_ARGS=$(cast abi-encode "constructor(address)" $TYT_TOKEN)
-verify_contract \
-    "VotingEscrowTYT" \
-    $VETYT \
-    "src/VotingEscrowTYT.sol:VotingEscrowTYT" \
-    $VETYT_ARGS
+    $MERKLE_ARGS
 
 # Summary
 print_header "VERIFICATION COMPLETE"
-print_success "All 7 contracts verified on $NETWORK!"
+print_success "All contracts verified on $NETWORK!"
 echo ""
 print_info "View contracts on PolygonScan:"
-echo "  FeeConfig:     $EXPLORER/address/$FEE_CONFIG"
-echo "  CharityVault:  $EXPLORER/address/$CHARITY_VAULT"
-echo "  AcademyVault:  $EXPLORER/address/$ACADEMY_VAULT"
-echo "  MinerNFT:      $EXPLORER/address/$MINER_NFT"
-echo "  Marketplace:   $EXPLORER/address/$MARKETPLACE"
-echo "  Rewards:       $EXPLORER/address/$REWARDS_REGISTRY"
-echo "  veTYT:         $EXPLORER/address/$VETYT"
+echo "  $EXPLORER/address/$FEE_CONFIG"
+echo "  $EXPLORER/address/$MINER_NFT"
+echo "  $EXPLORER/address/$MARKETPLACE"
 echo ""
 print_info "You can now interact with verified contracts through PolygonScan UI"

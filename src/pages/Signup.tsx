@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { AlertCircle, CheckCircle2, Mail, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -10,23 +10,8 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
-
-  const validatePassword = (pwd: string) => {
-    const checks = {
-      length: pwd.length >= 8,
-      uppercase: /[A-Z]/.test(pwd),
-      lowercase: /[a-z]/.test(pwd),
-      number: /[0-9]/.test(pwd),
-    };
-    return checks;
-  };
-
-  const checks = validatePassword(password);
-  const isPasswordValid = Object.values(checks).every(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +22,8 @@ export default function Signup() {
       return;
     }
 
-    if (!isPasswordValid) {
-      setError('Password does not meet security requirements');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
 
@@ -49,7 +34,9 @@ export default function Signup() {
       const result = await signUp(email, password);
       console.log('Sign up successful:', result);
       setSuccess(true);
-      // Don't redirect - show email verification message
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (err) {
       console.error('Signup error details:', {
         error: err,
@@ -101,53 +88,9 @@ export default function Signup() {
           )}
 
           {success && (
-            <div className="mb-6 p-6 bg-green-500/10 border border-green-500/50 rounded-lg">
-              <div className="flex items-start gap-3 mb-4">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-lg font-bold text-green-400 mb-1">Account Created Successfully!</h3>
-                  <p className="text-sm text-gray-300">One more step to get started...</p>
-                </div>
-              </div>
-
-              <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-blue-400 mb-1">Verify Your Email</h4>
-                    <p className="text-sm text-gray-300 mb-2">
-                      We've sent a verification link to <span className="font-medium text-white">{email}</span>
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Please check your inbox and click the verification link to activate your account.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-xs text-gray-400">
-                <p className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  Check your spam folder if you don't see it
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  The link expires in 24 hours
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  You can't log in until you verify your email
-                </p>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-green-500/30">
-                <Link
-                  to="/login"
-                  className="text-sm text-green-400 hover:text-green-300 font-medium inline-flex items-center gap-2"
-                >
-                  After verification, go to login →
-                </Link>
-              </div>
+            <div className="mb-6 p-4 bg-green-500/10 border border-green-500/50 rounded-lg flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-400">Account created successfully! Redirecting...</p>
             </div>
           )}
 
@@ -171,85 +114,35 @@ export default function Signup() {
               <label htmlFor="password" className="block text-sm font-medium mb-2">
                 Password
               </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 pr-12 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
-                  placeholder="Create a strong password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              {password && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs text-gray-400 mb-2">Password must contain:</p>
-                  <div className={`flex items-center gap-2 text-xs ${checks.length ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${checks.length ? 'bg-green-400' : 'bg-gray-600'}`} />
-                    At least 8 characters
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${checks.uppercase ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${checks.uppercase ? 'bg-green-400' : 'bg-gray-600'}`} />
-                    One uppercase letter (A-Z)
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${checks.lowercase ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${checks.lowercase ? 'bg-green-400' : 'bg-gray-600'}`} />
-                    One lowercase letter (a-z)
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${checks.number ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${checks.number ? 'bg-green-400' : 'bg-gray-600'}`} />
-                    One number (0-9)
-                  </div>
-
-                  <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                    <p className="text-xs font-semibold text-amber-400 mb-2">Create a Unique Password</p>
-                    <p className="text-xs text-gray-400 mb-2">Your password must be unique and not found in data breach databases.</p>
-                    <div className="space-y-1">
-                      <p className="text-xs text-green-400">Good: MyTYT!Secure#2026@Mining</p>
-                      <p className="text-xs text-red-400">Avoid: Password123! or Bitcoin2024!</p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">Tip: Add personal info or random symbols to make it unique</p>
-                  </div>
-                </div>
-              )}
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                placeholder="Min. 6 characters"
+              />
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
                 Confirm Password
               </label>
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 pr-12 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
-                  placeholder="Re-enter password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                placeholder="Re-enter password"
+              />
             </div>
 
             <button
               type="submit"
-              disabled={loading || success || !isPasswordValid}
+              disabled={loading || success}
               className="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg font-semibold hover:shadow-lg hover:shadow-amber-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Sign Up'}

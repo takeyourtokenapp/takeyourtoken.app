@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import AccessGuard from '../../components/AccessGuard';
 import {
   Users,
   Search,
@@ -27,12 +26,12 @@ interface UserProfile {
   is_active: boolean;
   is_admin: boolean;
   rank_score: number;
-  rank: string;
+  owl_rank: string;
   created_at: string;
   last_seen: string | null;
 }
 
-function AdminUsersContent() {
+export default function AdminUsers() {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,24 +48,23 @@ function AdminUsersContent() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      // Fetch profiles with email included (now available with new admin policy)
-      const { data: profilesData, error } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading profiles:', error);
-        return;
-      }
-
-      // Email is stored in profiles.email column, no need for auth.admin call
       if (profilesData) {
-        setUsers(profilesData.map(profile => ({
-          ...profile,
-          email: profile.email || 'N/A',
-          last_seen: profile.updated_at // Use updated_at as proxy for activity
-        })));
+        const usersWithEmails = await Promise.all(
+          profilesData.map(async (profile) => {
+            const { data: authData } = await supabase.auth.admin.getUserById(profile.id);
+            return {
+              ...profile,
+              email: authData?.user?.email || 'N/A',
+              last_seen: authData?.user?.last_sign_in_at || null
+            };
+          })
+        );
+        setUsers(usersWithEmails);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -265,7 +263,7 @@ function AdminUsersContent() {
                     )}
                   </td>
                   <td className="py-4 px-4 text-center">
-                    <div className="text-sm capitalize">{user.rank}</div>
+                    <div className="text-sm capitalize">{user.owl_rank}</div>
                     <div className="text-xs text-gray-500">{user.rank_score} XP</div>
                   </td>
                   <td className="py-4 px-4 text-center">
@@ -344,7 +342,7 @@ function AdminUsersContent() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-400">Owl Rank</label>
-                  <div className="font-semibold capitalize">{selectedUser.rank} ({selectedUser.rank_score} XP)</div>
+                  <div className="font-semibold capitalize">{selectedUser.owl_rank} ({selectedUser.rank_score} XP)</div>
                 </div>
                 <div>
                   <label className="text-sm text-gray-400">KYC Status</label>
@@ -408,13 +406,5 @@ function AdminUsersContent() {
         </div>
       )}
     </div>
-  );
-}
-
-export default function AdminUsers() {
-  return (
-    <AccessGuard requiredLevel="admin" redirectTo="/app">
-      <AdminUsersContent />
-    </AccessGuard>
   );
 }

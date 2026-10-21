@@ -129,8 +129,8 @@ export async function getTransactionStats(userId: string): Promise<{
 
   const { data: rewards } = await supabase
     .from('daily_rewards')
-    .select('btc_amount')
-    .eq('user_id', userId);
+    .select('net_btc')
+    .eq('miner_id', userId);
 
   const { data: purchases } = await supabase
     .from('transactions')
@@ -141,7 +141,7 @@ export async function getTransactionStats(userId: string): Promise<{
 
   const calculateTotal = (items: any[], assetPrices: Record<string, number>) => {
     return items?.reduce((sum, item) => {
-      const amount = parseFloat(item.amount || item.btc_amount || '0');
+      const amount = parseFloat(item.amount || item.net_btc || '0');
       const price = assetPrices[item.asset] || assetPrices['BTC'] || 1;
       return sum + (amount * price);
     }, 0) || 0;

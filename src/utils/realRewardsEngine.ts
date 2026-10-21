@@ -27,18 +27,15 @@ export class RealRewardsEngine {
     const networkDifficulty = await this.getNetworkDifficulty();
     const electricityRate = await this.getElectricityRate(miner.region);
 
-    const powerTH = parseFloat(miner.hashrate || '0');
-    const efficiencyWTH = parseFloat(miner.efficiency || '0');
-
     const grossBTC = this.calculateGrossBTC(
-      powerTH,
+      miner.power_th,
       networkDifficulty
     );
 
-    const dailyKWH = (powerTH * efficiencyWTH * 24) / 1000;
+    const dailyKWH = (miner.power_th * miner.efficiency_w_th * 24) / 1000;
     const electricityCostUSD = dailyKWH * electricityRate;
 
-    const serviceFeeUSD = powerTH * parseFloat(miner.maintenance_rate || '0');
+    const serviceFeeUSD = miner.power_th * miner.maintenance_rate;
 
     const discountPercent = await this.calculateDiscount(userId);
     const totalCostUSD = (electricityCostUSD + serviceFeeUSD) * (1 - discountPercent / 100);
@@ -81,7 +78,7 @@ export class RealRewardsEngine {
 
   private static async getMiner(minerId: string) {
     const { data, error } = await supabase
-      .from('nft_miners')
+      .from('digital_miners')
       .select('*')
       .eq('id', minerId)
       .single();
@@ -155,15 +152,15 @@ export class RealRewardsEngine {
     let discount = tierDiscounts[user.vip_tier?.toLowerCase() || ''] || 0;
 
     const { data: serviceButton } = await supabase
-      .from('service_button_claims')
-      .select('claimed_at')
+      .from('game_service_button_clicks')
+      .select('clicked_at')
       .eq('user_id', userId)
-      .order('claimed_at', { ascending: false })
+      .order('clicked_at', { ascending: false })
       .limit(1)
       .single();
 
     if (serviceButton) {
-      const lastClick = new Date(serviceButton.claimed_at);
+      const lastClick = new Date(serviceButton.clicked_at);
       const hoursSinceClick = (Date.now() - lastClick.getTime()) / (1000 * 60 * 60);
 
       if (hoursSinceClick < 24) {
@@ -176,7 +173,7 @@ export class RealRewardsEngine {
 
   static async processAllDailyRewards(): Promise<void> {
     const { data: activeMiners, error } = await supabase
-      .from('nft_miners')
+      .from('digital_miners')
       .select('id, user_id, status')
       .eq('status', 'active');
 
@@ -201,7 +198,7 @@ export class RealRewardsEngine {
       .from('custodial_wallets')
       .select('id, balance')
       .eq('user_id', userId)
-      .eq('currency', 'BTC')
+      .eq('asset', 'BTC')
       .single();
 
     if (!wallet) {
@@ -216,36 +213,19 @@ export class RealRewardsEngine {
       .update({ balance: newBalance })
       .eq('id', wallet.id);
 
-    const { data: miner } = await supabase
-      .from('nft_miners')
-      .select('hashrate, efficiency')
-      .eq('id', minerId)
-      .single();
-
-    const btcPrice = await this.getBTCPrice();
-    const networkDifficulty = await this.getNetworkDifficulty();
-
-    await supabase.from('daily_rewards').insert({
+    await supabase.from('reward_distributions').insert({
       user_id: userId,
       miner_id: minerId,
-      reward_date: new Date().toISOString().split('T')[0],
-      btc_amount: calculation.creditedBTC.toFixed(8),
-      hashrate_snapshot: parseFloat(miner?.hashrate || '0'),
-      efficiency_snapshot: parseFloat(miner?.efficiency || '0'),
-      network_difficulty: networkDifficulty,
-      btc_price_usd: btcPrice,
-      status: 'completed',
-      metadata: {
-        gross_btc: calculation.grossBTC.toFixed(8),
-        electricity_cost_usd: calculation.electricityCostUSD.toFixed(2),
-        service_fee_usd: calculation.serviceFeeUSD.toFixed(2),
-        discount_percent: calculation.discountPercent,
-        total_cost_usd: calculation.totalCostUSD.toFixed(2),
-        cost_btc: calculation.costBTC.toFixed(8),
-        net_btc: calculation.netBTC.toFixed(8),
-        reinvest_btc: calculation.reinvestBTC.toFixed(8),
-        credited_btc: calculation.creditedBTC.toFixed(8),
-      },
+      gross_btc: calculation.grossBTC.toFixed(8),
+      electricity_cost_usd: calculation.electricityCostUSD.toFixed(2),
+      service_fee_usd: calculation.serviceFeeUSD.toFixed(2),
+      discount_percent: calculation.discountPercent,
+      total_cost_usd: calculation.totalCostUSD.toFixed(2),
+      cost_btc: calculation.costBTC.toFixed(8),
+      net_btc: calculation.netBTC.toFixed(8),
+      reinvest_btc: calculation.reinvestBTC.toFixed(8),
+      credited_btc: calculation.creditedBTC.toFixed(8),
+      distribution_date: new Date().toISOString().split('T')[0],
     });
 
     if (calculation.reinvestBTC > 0) {
@@ -293,7 +273,7 @@ export class RealRewardsEngine {
         .from('custodial_wallets')
         .select('balance')
         .eq('user_id', userId)
-        .eq('currency', 'TYT')
+        .eq('asset', 'TYT')
         .single();
 
       if (tytWallet && parseFloat(tytWallet.balance) >= tytAmount) {
@@ -302,16 +282,10 @@ export class RealRewardsEngine {
         await supabase.from('maintenance_invoices').insert({
           user_id: userId,
           miner_id: minerId,
-          invoice_date: new Date().toISOString().split('T')[0],
-          due_date: new Date().toISOString().split('T')[0],
-          base_cost_usd: feeUSD,
-          final_cost_usd: feeUSD * 0.8,
-          tyt_discount_percent: 20,
-          total_discount_percent: 20,
-          payment_currency: 'TYT',
-          payment_amount: tytAmount,
+          amount_usd: feeUSD,
+          paid_with: 'TYT',
+          tyt_amount: tytAmount,
           status: 'paid',
-          paid_at: new Date().toISOString(),
         });
       }
     }
@@ -326,7 +300,7 @@ export class RealRewardsEngine {
       .from('custodial_wallets')
       .select('id, balance')
       .eq('user_id', userId)
-      .eq('currency', 'TYT')
+      .eq('asset', 'TYT')
       .single();
 
     if (!wallet) return;
@@ -338,12 +312,10 @@ export class RealRewardsEngine {
       .update({ balance: newBalance })
       .eq('id', wallet.id);
 
-    await supabase.from('burn_events').insert({
+    await supabase.from('token_burns').insert({
       burn_type: 'maintenance_payment',
-      amount_tyt: amount,
-      burn_address: 'TYTBurnAddressXXXXXXXXXXXXXXXXXX',
-      status: 'completed',
-      metadata: { user_id: userId },
+      tyt_amount: amount,
+      user_id: userId,
     });
   }
 
@@ -364,7 +336,7 @@ export class RealRewardsEngine {
     const dailyProfit = calculation.netBTC * btcPrice;
 
     const { data: miner } = await supabase
-      .from('nft_miners')
+      .from('digital_miners')
       .select('purchase_price')
       .eq('id', minerId)
       .single();

@@ -74,18 +74,18 @@ export default function MiningStatsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-primary-text">Mining Statistics</h2>
-          <p className="text-tertiary-text">Real-time performance and earnings overview</p>
+          <h2 className="text-2xl font-bold">Mining Statistics</h2>
+          <p className="text-gray-400">Real-time performance and earnings overview</p>
         </div>
-        <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
+        <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
           {(['24h', '7d', '30d', '1y'] as const).map(range => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
               className={`px-4 py-2 rounded-md font-semibold transition-all ${
                 timeRange === range
-                  ? 'bg-amber-500 text-black dark:text-white'
-                  : 'text-tertiary-text hover:text-primary-text'
+                  ? 'bg-amber-500 text-black'
+                  : 'text-gray-400 hover:text-white'
               }`}
             >
               {range}
@@ -96,60 +96,60 @@ export default function MiningStatsDashboard() {
 
       {/* Key Metrics */}
       <div className="grid md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 border border-blue-500/30 rounded-xl p-6">
           <div className="flex items-center justify-between mb-3">
-            <Cpu className="w-8 h-8 text-blue-500 dark:text-blue-400" />
-            <TrendingUp className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <Cpu className="w-8 h-8 text-blue-400" />
+            <TrendingUp className="w-5 h-5 text-green-400" />
           </div>
-          <div className="text-3xl font-bold text-blue-500 dark:text-blue-400 mb-1">{currentHashrate} TH/s</div>
-          <div className="text-sm text-tertiary-text">Total Hashrate</div>
-          <div className="text-xs text-green-500 dark:text-green-400 mt-2">+5.2% from last period</div>
+          <div className="text-3xl font-bold text-blue-400 mb-1">{currentHashrate} TH/s</div>
+          <div className="text-sm text-gray-400">Total Hashrate</div>
+          <div className="text-xs text-green-400 mt-2">+5.2% from last period</div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-amber-900/30 to-amber-800/30 border border-amber-500/30 rounded-xl p-6">
           <div className="flex items-center justify-between mb-3">
             <Zap className="w-8 h-8 text-amber-400" />
             <Activity className="w-5 h-5 text-amber-400" />
           </div>
           <div className="text-3xl font-bold text-amber-400 mb-1">{avgEfficiency} W/TH</div>
-          <div className="text-sm text-tertiary-text">Avg Efficiency</div>
-          <div className="text-xs text-green-500 dark:text-green-400 mt-2">Optimal performance</div>
+          <div className="text-sm text-gray-400">Avg Efficiency</div>
+          <div className="text-xs text-green-400 mt-2">Optimal performance</div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/30 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-green-900/30 to-green-800/30 border border-green-500/30 rounded-xl p-6">
           <div className="flex items-center justify-between mb-3">
-            <DollarSign className="w-8 h-8 text-green-500 dark:text-green-400" />
-            <ArrowUp className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <DollarSign className="w-8 h-8 text-green-400" />
+            <ArrowUp className="w-5 h-5 text-green-400" />
           </div>
-          <div className="text-3xl font-bold text-green-500 dark:text-green-400 mb-1">{dailyRewards.toFixed(5)} BTC</div>
-          <div className="text-sm text-tertiary-text">Daily Rewards</div>
-          <div className="text-xs text-tertiary-text mt-2">≈ ${(dailyRewards * 43250).toFixed(2)} USD</div>
+          <div className="text-3xl font-bold text-green-400 mb-1">{dailyRewards.toFixed(5)} BTC</div>
+          <div className="text-sm text-gray-400">Daily Rewards</div>
+          <div className="text-xs text-gray-500 mt-2">≈ ${(dailyRewards * 43250).toFixed(2)} USD</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 border border-purple-500/30 rounded-xl p-6">
           <div className="flex items-center justify-between mb-3">
-            <BarChart3 className="w-8 h-8 text-purple-500 dark:text-purple-400" />
-            <TrendingUp className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <BarChart3 className="w-8 h-8 text-purple-400" />
+            <TrendingUp className="w-5 h-5 text-green-400" />
           </div>
-          <div className="text-3xl font-bold text-purple-500 dark:text-purple-400 mb-1">{monthlyROI}%</div>
-          <div className="text-sm text-tertiary-text">Monthly ROI</div>
-          <div className="text-xs text-green-500 dark:text-green-400 mt-2">Above target</div>
+          <div className="text-3xl font-bold text-purple-400 mb-1">{monthlyROI}%</div>
+          <div className="text-sm text-gray-400">Monthly ROI</div>
+          <div className="text-xs text-green-400 mt-2">Above target</div>
         </div>
       </div>
 
       {/* Hashrate Chart */}
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-bold text-primary-text">Hashrate Performance</h3>
-            <p className="text-sm text-tertiary-text">
+            <h3 className="text-lg font-bold">Hashrate Performance</h3>
+            <p className="text-sm text-gray-400">
               Peak: {getMaxHashrate().toFixed(1)} TH/s • Low: {getMinHashrate().toFixed(1)} TH/s
             </p>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-tertiary-text">Hashrate</span>
+              <span className="text-gray-400">Hashrate</span>
             </div>
           </div>
         </div>
@@ -207,69 +207,69 @@ export default function MiningStatsDashboard() {
 
       {/* Miners Status */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-secondary rounded-xl p-6 border border-secondary">
-          <h3 className="text-lg font-bold text-primary-text mb-4">Active Miners</h3>
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <h3 className="text-lg font-bold mb-4">Active Miners</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between py-3 border-b border-secondary">
+            <div className="flex items-center justify-between py-3 border-b border-gray-700">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="font-semibold text-primary-text">Total Miners</span>
+                <span className="font-semibold">Total Miners</span>
               </div>
-              <span className="text-2xl font-bold text-primary-text">{totalMiners}</span>
+              <span className="text-2xl font-bold">{totalMiners}</span>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-secondary">
+            <div className="flex items-center justify-between py-3 border-b border-gray-700">
               <div className="flex items-center gap-3">
-                <Activity className="w-4 h-4 text-green-500 dark:text-green-400" />
-                <span className="text-tertiary-text">Active</span>
+                <Activity className="w-4 h-4 text-green-400" />
+                <span className="text-gray-400">Active</span>
               </div>
-              <span className="text-xl font-bold text-green-500 dark:text-green-400">{activeMiners}</span>
+              <span className="text-xl font-bold text-green-400">{activeMiners}</span>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-secondary">
+            <div className="flex items-center justify-between py-3 border-b border-gray-700">
               <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-tertiary-text" />
-                <span className="text-tertiary-text">Offline</span>
+                <Clock className="w-4 h-4 text-gray-500" />
+                <span className="text-gray-400">Offline</span>
               </div>
-              <span className="text-xl font-bold text-tertiary-text">{totalMiners - activeMiners}</span>
+              <span className="text-xl font-bold text-gray-500">{totalMiners - activeMiners}</span>
             </div>
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
                 <Zap className="w-4 h-4 text-amber-400" />
-                <span className="text-tertiary-text">Uptime</span>
+                <span className="text-gray-400">Uptime</span>
               </div>
               <span className="text-xl font-bold text-amber-400">99.8%</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-secondary rounded-xl p-6 border border-secondary">
-          <h3 className="text-lg font-bold text-primary-text mb-4">Rewards Summary</h3>
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <h3 className="text-lg font-bold mb-4">Rewards Summary</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between py-3 border-b border-secondary">
-              <span className="text-tertiary-text">Daily Average</span>
+            <div className="flex items-center justify-between py-3 border-b border-gray-700">
+              <span className="text-gray-400">Daily Average</span>
               <div className="text-right">
-                <div className="font-bold text-primary-text">{dailyRewards.toFixed(5)} BTC</div>
-                <div className="text-xs text-tertiary-text">${(dailyRewards * 43250).toFixed(2)}</div>
+                <div className="font-bold">{dailyRewards.toFixed(5)} BTC</div>
+                <div className="text-xs text-gray-500">${(dailyRewards * 43250).toFixed(2)}</div>
               </div>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-secondary">
-              <span className="text-tertiary-text">Weekly Total</span>
+            <div className="flex items-center justify-between py-3 border-b border-gray-700">
+              <span className="text-gray-400">Weekly Total</span>
               <div className="text-right">
-                <div className="font-bold text-primary-text">{weeklyRewards.toFixed(5)} BTC</div>
-                <div className="text-xs text-tertiary-text">${(weeklyRewards * 43250).toFixed(2)}</div>
+                <div className="font-bold">{weeklyRewards.toFixed(5)} BTC</div>
+                <div className="text-xs text-gray-500">${(weeklyRewards * 43250).toFixed(2)}</div>
               </div>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-secondary">
-              <span className="text-tertiary-text">Monthly Est.</span>
+            <div className="flex items-center justify-between py-3 border-b border-gray-700">
+              <span className="text-gray-400">Monthly Est.</span>
               <div className="text-right">
-                <div className="font-bold text-primary-text">{(weeklyRewards * 4.33).toFixed(5)} BTC</div>
-                <div className="text-xs text-tertiary-text">${(weeklyRewards * 4.33 * 43250).toFixed(2)}</div>
+                <div className="font-bold">{(weeklyRewards * 4.33).toFixed(5)} BTC</div>
+                <div className="text-xs text-gray-500">${(weeklyRewards * 4.33 * 43250).toFixed(2)}</div>
               </div>
             </div>
             <div className="flex items-center justify-between py-3">
-              <span className="text-tertiary-text">Total Lifetime</span>
+              <span className="text-gray-400">Total Lifetime</span>
               <div className="text-right">
-                <div className="font-bold text-green-500 dark:text-green-400">0.3847 BTC</div>
-                <div className="text-xs text-tertiary-text">$16,638.48</div>
+                <div className="font-bold text-green-400">0.3847 BTC</div>
+                <div className="text-xs text-gray-500">$16,638.48</div>
               </div>
             </div>
           </div>

@@ -1,398 +1,397 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ArrowDownUp, TrendingUp, Info, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import {
-  Repeat,
-  Settings,
-  Clock,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle
-} from 'lucide-react';
-import TokenSelector from '../../components/wallet/TokenSelector';
-import SwapPreview from '../../components/wallet/SwapPreview';
 
 interface Token {
   symbol: string;
   name: string;
+  icon: string;
   balance: number;
-  contract_address?: string;
-  decimals?: number;
 }
+
+const TOKENS: Record<string, Omit<Token, 'balance'>> = {
+  BTC: { symbol: 'BTC', name: 'Bitcoin', icon: '₿' },
+  TYT: { symbol: 'TYT', name: 'TYT Token', icon: '🦉' },
+  USDT: { symbol: 'USDT', name: 'Tether', icon: '₮' },
+  ETH: { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ' },
+  SOL: { symbol: 'SOL', name: 'Solana', icon: '◎' },
+  TRX: { symbol: 'TRX', name: 'TRON', icon: '⬣' },
+};
 
 export default function Swap() {
   const { user } = useAuth();
-  const [tokens, setTokens] = useState<Token[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [swapping, setSwapping] = useState(false);
-
   const [fromToken, setFromToken] = useState<Token | null>(null);
   const [toToken, setToToken] = useState<Token | null>(null);
   const [fromAmount, setFromAmount] = useState('');
   const [toAmount, setToAmount] = useState('');
-
+  const [exchangeRate, setExchangeRate] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [loadingRate, setLoadingRate] = useState(false);
   const [slippage, setSlippage] = useState(0.5);
-  const [showSettings, setShowSettings] = useState(false);
-  const [recentSwaps, setRecentSwaps] = useState<any[]>([]);
+  const [swapFee, setSwapFee] = useState(0.3);
+  const [balances, setBalances] = useState<Record<string, number>>({});
+  const [swapHistory, setSwapHistory] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
-      loadTokensAndSwaps();
+      loadBalances();
+      loadSwapHistory();
     }
   }, [user]);
 
   useEffect(() => {
-    if (fromToken && fromAmount && parseFloat(fromAmount) > 0) {
-      calculateToAmount();
+    if (fromToken && toToken && fromAmount) {
+      fetchExchangeRate();
     }
   }, [fromToken, toToken, fromAmount]);
 
-  const loadTokensAndSwaps = async () => {
+  const loadBalances = async () => {
     if (!user) return;
 
+    const { data, error } = await supabase
+      .from('custodial_wallets')
+      .select('asset, balance')
+      .eq('user_id', user.id);
+
+    if (data) {
+      const balanceMap: Record<string, number> = {};
+      data.forEach((wallet) => {
+        balanceMap[wallet.asset] = parseFloat(wallet.balance || '0');
+      });
+      setBalances(balanceMap);
+
+      // Set default tokens
+      if (!fromToken && balanceMap['USDT'] !== undefined) {
+        setFromToken({ ...TOKENS['USDT'], balance: balanceMap['USDT'] });
+      }
+      if (!toToken && balanceMap['TYT'] !== undefined) {
+        setToToken({ ...TOKENS['TYT'], balance: balanceMap['TYT'] });
+      }
+    }
+  };
+
+  const loadSwapHistory = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('custodial_internal_swaps')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (data) {
+      setSwapHistory(data);
+    }
+  };
+
+  const fetchExchangeRate = async () => {
+    if (!fromToken || !toToken || !fromAmount) return;
+
+    setLoadingRate(true);
+
     try {
-      setLoading(true);
+      // Simulate exchange rate fetch (in production, call real API)
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const swapsRes = await supabase
-        .from('token_swaps')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // Mock rates (in production, fetch from price oracle)
+      const rates: Record<string, Record<string, number>> = {
+        BTC: { USDT: 45000, TYT: 900000, ETH: 15, SOL: 450, TRX: 450000 },
+        USDT: { BTC: 0.000022, TYT: 20, ETH: 0.00033, SOL: 0.01, TRX: 10 },
+        TYT: { BTC: 0.0000011, USDT: 0.05, ETH: 0.000017, SOL: 0.0005, TRX: 0.5 },
+        ETH: { BTC: 0.067, USDT: 3000, TYT: 60000, SOL: 30, TRX: 30000 },
+        SOL: { BTC: 0.0022, USDT: 100, TYT: 2000, ETH: 0.033, TRX: 1000 },
+        TRX: { BTC: 0.0000022, USDT: 0.1, TYT: 2, ETH: 0.000033, SOL: 0.001 },
+      };
 
-      const tokenList: Token[] = [
-        { symbol: 'TYT', name: 'TakeYourToken', balance: 0 },
-        { symbol: 'BTC', name: 'Bitcoin', balance: 0 },
-        { symbol: 'USDT', name: 'Tether USD', balance: 0 }
-      ];
+      const rate = rates[fromToken.symbol]?.[toToken.symbol] || 1;
+      setExchangeRate(rate);
 
-      // custodial_wallets uses 'currency' and 'balance', not balance_btc/balance_tyt/balance_usdt
-      const walletRes = await supabase
+      const calculatedAmount = parseFloat(fromAmount) * rate * (1 - swapFee / 100);
+      setToAmount(calculatedAmount.toFixed(6));
+    } catch (error) {
+      console.error('Failed to fetch rate:', error);
+    } finally {
+      setLoadingRate(false);
+    }
+  };
+
+  const handleSwap = async () => {
+    if (!user || !fromToken || !toToken || !fromAmount || !toAmount) return;
+
+    setLoading(true);
+
+    try {
+      // Get wallet IDs
+      const { data: fromWallet } = await supabase
         .from('custodial_wallets')
-        .select('currency, balance')
-        .eq('user_id', user.id);
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('asset', fromToken.symbol)
+        .single();
 
-      const walletMap: Record<string, number> = {};
-      (walletRes.data || []).forEach(w => {
-        walletMap[w.currency] = parseFloat(w.balance || '0');
+      const { data: toWallet } = await supabase
+        .from('custodial_wallets')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('asset', toToken.symbol)
+        .single();
+
+      if (!fromWallet || !toWallet) {
+        throw new Error('Wallets not found');
+      }
+
+      // Create swap record
+      const { error } = await supabase.from('custodial_internal_swaps').insert({
+        user_id: user.id,
+        from_wallet_id: fromWallet.id,
+        to_wallet_id: toWallet.id,
+        from_asset: fromToken.symbol,
+        to_asset: toToken.symbol,
+        from_amount: parseFloat(fromAmount),
+        to_amount: parseFloat(toAmount),
+        exchange_rate: exchangeRate,
+        swap_fee: (parseFloat(fromAmount) * swapFee) / 100,
+        rate_provider: 'internal',
+        status: 'completed',
       });
 
-      const walletTokenList: Token[] = [
-        {
-          symbol: 'TYT',
-          name: 'TakeYourToken',
-          balance: walletMap['TYT'] || 0
-        },
-        {
-          symbol: 'BTC',
-          name: 'Bitcoin',
-          balance: walletMap['BTC'] || 0
-        },
-        {
-          symbol: 'USDT',
-          name: 'Tether USD',
-          balance: walletMap['USDT'] || 0
-        }
-      ];
+      if (error) throw error;
 
-      const uniqueTokens = Array.from(
-        new Map(walletTokenList.map(t => [t.symbol, t])).values()
-      );
-
-      setTokens(uniqueTokens);
-      setRecentSwaps(swapsRes.data || []);
-
-      if (uniqueTokens.length > 0 && !fromToken) {
-        setFromToken(uniqueTokens.find(t => t.symbol === 'TYT') || uniqueTokens[0]);
-      }
-      if (uniqueTokens.length > 1 && !toToken) {
-        setToToken(uniqueTokens.find(t => t.symbol === 'BTC') || uniqueTokens[1]);
-      }
-    } catch (err) {
-      console.error('Error loading tokens:', err);
+      alert('Swap completed successfully!');
+      setFromAmount('');
+      setToAmount('');
+      loadBalances();
+      loadSwapHistory();
+    } catch (error: any) {
+      console.error('Swap error:', error);
+      alert(error.message || 'Swap failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateToAmount = () => {
-    if (!fromToken || !toToken || !fromAmount) return;
-
-    const amount = parseFloat(fromAmount);
-    if (isNaN(amount) || amount <= 0) return;
-
-    let rate = 1;
-    if (fromToken.symbol === 'TYT' && toToken.symbol === 'BTC') {
-      rate = 0.00001;
-    } else if (fromToken.symbol === 'BTC' && toToken.symbol === 'TYT') {
-      rate = 100000;
-    } else if (fromToken.symbol === 'TYT' && toToken.symbol === 'USDT') {
-      rate = 0.5;
-    } else if (fromToken.symbol === 'USDT' && toToken.symbol === 'TYT') {
-      rate = 2;
-    } else if (fromToken.symbol === 'BTC' && toToken.symbol === 'USDT') {
-      rate = 45000;
-    } else if (fromToken.symbol === 'USDT' && toToken.symbol === 'BTC') {
-      rate = 0.0000222;
-    }
-
-    const fee = amount * 0.003;
-    const outputAmount = (amount - fee) * rate;
-    setToAmount(outputAmount.toFixed(8));
-  };
-
-  const handleSwapTokens = () => {
-    const tempToken = fromToken;
-    const tempAmount = fromAmount;
-
+  const handleFlipTokens = () => {
+    const temp = fromToken;
     setFromToken(toToken);
-    setToToken(tempToken);
+    setToToken(temp);
     setFromAmount(toAmount);
-    setToAmount(tempAmount);
+    setToAmount(fromAmount);
   };
 
-  const handleSwap = async () => {
-    if (!user || !fromToken || !toToken || !fromAmount || parseFloat(fromAmount) <= 0) return;
-
-    const amount = parseFloat(fromAmount);
-    if (amount > fromToken.balance) {
-      alert('Insufficient balance');
-      return;
-    }
-
-    try {
-      setSwapping(true);
-
-      const { error } = await supabase
-        .from('token_swaps')
-        .insert({
-          user_id: user.id,
-          from_token: fromToken.symbol,
-          to_token: toToken.symbol,
-          from_amount: amount,
-          to_amount: parseFloat(toAmount),
-          status: 'completed',
-          blockchain: 'internal',
-          swap_provider: 'tyt-internal',
-          price_impact: parseFloat(((parseFloat(toAmount) / amount - 1) * 100).toFixed(2)),
-        });
-
-      if (error) throw error;
-
-      await loadTokensAndSwaps();
-      setFromAmount('');
-      setToAmount('');
-
-      alert('Swap completed successfully!');
-    } catch (err) {
-      console.error('Swap error:', err);
-      alert('Swap failed. Please try again.');
-    } finally {
-      setSwapping(false);
+  const handleMaxAmount = () => {
+    if (fromToken) {
+      setFromAmount(fromToken.balance.toString());
     }
   };
-
-  const exchangeRate = fromAmount && toAmount && parseFloat(fromAmount) > 0
-    ? parseFloat(toAmount) / parseFloat(fromAmount)
-    : 0;
-
-  const priceImpact = fromAmount && parseFloat(fromAmount) > 1000 ? 2.5 : 0.5;
-  const fee = fromAmount ? parseFloat(fromAmount) * 0.003 : 0;
-  const minReceived = toAmount ? parseFloat(toAmount) * (1 - slippage / 100) : 0;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-400"></div>
-      </div>
-    );
-  }
-
-  const isSwapValid = fromToken && toToken && fromAmount &&
-    parseFloat(fromAmount) > 0 &&
-    parseFloat(fromAmount) <= fromToken.balance &&
-    fromToken.symbol !== toToken.symbol;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Token Swap</h1>
-          <p className="text-gray-400">
-            Exchange tokens instantly with the best rates
-          </p>
-        </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-3 bg-navy-800 border border-gold-500/20 rounded-lg hover:border-gold-500/40 transition-colors"
-        >
-          <Settings className={`w-5 h-5 text-gray-400 ${showSettings ? 'rotate-90' : ''} transition-transform`} />
-        </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-white mb-2">Token Swap</h1>
+        <p className="text-gray-400">Exchange tokens instantly within your wallet</p>
       </div>
 
-      {showSettings && (
-        <div className="bg-navy-800 border border-gold-500/20 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Swap Settings</h3>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Slippage Tolerance
-            </label>
-            <div className="flex gap-2">
-              {[0.1, 0.5, 1.0].map((value) => (
-                <button
-                  key={value}
-                  onClick={() => setSlippage(value)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    slippage === value
-                      ? 'bg-gold-500 text-navy-900'
-                      : 'bg-navy-700 text-white hover:bg-navy-600'
-                  }`}
-                >
-                  {value}%
-                </button>
-              ))}
+      {/* Swap Interface */}
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-8 border border-gray-700/50">
+        <div className="space-y-4">
+          {/* From Token */}
+          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm text-gray-400">From</label>
+              <span className="text-sm text-gray-400">
+                Balance: {fromToken?.balance.toFixed(6) || '0.00'}
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <select
+                value={fromToken?.symbol || ''}
+                onChange={(e) => {
+                  const token = TOKENS[e.target.value];
+                  if (token) {
+                    setFromToken({ ...token, balance: balances[token.symbol] || 0 });
+                  }
+                }}
+                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#D2A44C]"
+              >
+                <option value="">Select token</option>
+                {Object.values(TOKENS).map((token) => (
+                  <option key={token.symbol} value={token.symbol}>
+                    {token.icon} {token.symbol}
+                  </option>
+                ))}
+              </select>
               <input
                 type="number"
-                value={slippage}
-                onChange={(e) => setSlippage(parseFloat(e.target.value) || 0.5)}
-                step="0.1"
-                min="0.1"
-                max="50"
-                className="flex-1 px-4 py-2 bg-navy-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                value={fromAmount}
+                onChange={(e) => setFromAmount(e.target.value)}
+                placeholder="0.00"
+                className="flex-1 px-4 py-2 bg-transparent text-white text-xl font-bold focus:outline-none"
               />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-gradient-to-br from-navy-800 to-navy-900 border border-gold-500/20 rounded-xl p-6 space-y-4">
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <TokenSelector
-            label="From"
-            selectedToken={fromToken}
-            tokens={tokens}
-            onSelect={setFromToken}
-          />
-          <input
-            type="number"
-            value={fromAmount}
-            onChange={(e) => setFromAmount(e.target.value)}
-            placeholder="0.0"
-            className="w-full mt-3 px-4 py-3 bg-navy-800 border border-gray-600 rounded-lg text-white text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
-          />
-          {fromToken && (
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="text-gray-400">Balance: {fromToken.balance.toFixed(4)}</span>
               <button
-                onClick={() => setFromAmount(fromToken.balance.toString())}
-                className="text-gold-400 hover:text-gold-300 font-medium"
+                onClick={handleMaxAmount}
+                className="px-3 py-1 bg-[#D2A44C]/20 text-[#D2A44C] rounded text-sm hover:bg-[#D2A44C]/30"
               >
-                Max
+                MAX
               </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="flex justify-center">
-          <button
-            onClick={handleSwapTokens}
-            className="p-3 bg-navy-700 border border-gold-500/20 rounded-lg hover:border-gold-500 transition-all hover:rotate-180"
-          >
-            <Repeat className="w-5 h-5 text-gold-400" />
-          </button>
-        </div>
+          {/* Swap Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleFlipTokens}
+              className="p-3 rounded-full bg-gray-800 border border-gray-700 hover:border-[#D2A44C] hover:bg-gray-700 transition-all"
+            >
+              <ArrowDownUp className="w-5 h-5 text-[#D2A44C]" />
+            </button>
+          </div>
 
-        <div className="bg-navy-700/50 rounded-lg p-4">
-          <TokenSelector
-            label="To"
-            selectedToken={toToken}
-            tokens={tokens.filter(t => t.symbol !== fromToken?.symbol)}
-            onSelect={setToToken}
-          />
-          <input
-            type="text"
-            value={toAmount}
-            readOnly
-            placeholder="0.0"
-            className="w-full mt-3 px-4 py-3 bg-navy-800 border border-gray-600 rounded-lg text-white text-2xl font-bold"
-          />
-          {toToken && (
-            <div className="mt-2 text-sm text-gray-400">
-              Balance: {toToken.balance.toFixed(4)}
+          {/* To Token */}
+          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm text-gray-400">To</label>
+              <span className="text-sm text-gray-400">
+                Balance: {toToken?.balance.toFixed(6) || '0.00'}
+              </span>
             </div>
-          )}
-        </div>
-
-        <button
-          onClick={handleSwap}
-          disabled={!isSwapValid || swapping}
-          className="w-full py-4 bg-gradient-to-r from-gold-400 to-gold-600 text-navy-900 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-gold-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {swapping ? 'Swapping...' : 'Swap Tokens'}
-        </button>
-
-        {!isSwapValid && fromAmount && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-400" />
-              <p className="text-sm text-yellow-400">
-                {parseFloat(fromAmount) > (fromToken?.balance || 0)
-                  ? 'Insufficient balance'
-                  : 'Enter a valid amount'}
-              </p>
+            <div className="flex items-center gap-4">
+              <select
+                value={toToken?.symbol || ''}
+                onChange={(e) => {
+                  const token = TOKENS[e.target.value];
+                  if (token) {
+                    setToToken({ ...token, balance: balances[token.symbol] || 0 });
+                  }
+                }}
+                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#D2A44C]"
+              >
+                <option value="">Select token</option>
+                {Object.values(TOKENS).map((token) => (
+                  <option key={token.symbol} value={token.symbol}>
+                    {token.icon} {token.symbol}
+                  </option>
+                ))}
+              </select>
+              <div className="flex-1 text-right">
+                {loadingRate ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                ) : (
+                  <span className="text-xl font-bold text-white">
+                    {toAmount || '0.00'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        )}
-      </div>
 
-      {fromAmount && toAmount && fromToken && toToken && (
-        <SwapPreview
-          fromToken={fromToken.symbol}
-          toToken={toToken.symbol}
-          fromAmount={parseFloat(fromAmount)}
-          toAmount={parseFloat(toAmount)}
-          exchangeRate={exchangeRate}
-          priceImpact={priceImpact}
-          fee={fee}
-          slippage={slippage}
-          minReceived={minReceived}
-        />
-      )}
-
-      {recentSwaps.length > 0 && (
-        <div className="bg-navy-800 border border-gold-500/20 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-gold-400" />
-            Recent Swaps
-          </h3>
-          <div className="space-y-3">
-            {recentSwaps.map((swap) => (
-              <div
-                key={swap.id}
-                className="flex items-center justify-between bg-navy-700/50 rounded-lg p-4"
-              >
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <div>
-                    <p className="text-white font-medium">
-                      {swap.from_amount} {swap.from_token} → {swap.to_amount.toFixed(6)} {swap.to_token}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(swap.created_at).toLocaleString()}
-                    </p>
-                  </div>
+          {/* Swap Details */}
+          {fromToken && toToken && fromAmount && (
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between text-gray-300">
+                  <span>Exchange Rate:</span>
+                  <span className="text-white font-medium">
+                    1 {fromToken.symbol} = {exchangeRate.toFixed(6)} {toToken.symbol}
+                  </span>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gold-400 font-medium">
-                    1 {swap.from_token} = {swap.exchange_rate.toFixed(6)} {swap.to_token}
-                  </p>
-                  <p className="text-xs text-gray-400">Fee: {swap.fee_amount.toFixed(4)} {swap.from_token}</p>
+                <div className="flex items-center justify-between text-gray-300">
+                  <span>Swap Fee:</span>
+                  <span className="text-white font-medium">{swapFee}%</span>
+                </div>
+                <div className="flex items-center justify-between text-gray-300">
+                  <span>Slippage Tolerance:</span>
+                  <span className="text-white font-medium">{slippage}%</span>
+                </div>
+                <div className="flex items-center justify-between text-gray-300">
+                  <span>Price Impact:</span>
+                  <span className="text-green-400 font-medium">{'<0.01%'}</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Slippage Settings */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-400">Slippage:</span>
+            {[0.1, 0.5, 1.0].map((value) => (
+              <button
+                key={value}
+                onClick={() => setSlippage(value)}
+                className={`px-3 py-1 rounded text-sm ${
+                  slippage === value
+                    ? 'bg-[#D2A44C] text-white'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {value}%
+              </button>
             ))}
           </div>
+
+          {/* Swap Button */}
+          <button
+            onClick={handleSwap}
+            disabled={
+              loading ||
+              !fromToken ||
+              !toToken ||
+              !fromAmount ||
+              parseFloat(fromAmount) <= 0 ||
+              parseFloat(fromAmount) > (fromToken?.balance || 0)
+            }
+            className="w-full py-4 bg-gradient-to-r from-[#D2A44C] to-yellow-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-[#D2A44C]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Swapping...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-5 h-5" />
+                Swap Tokens
+              </>
+            )}
+          </button>
         </div>
-      )}
+      </div>
+
+      {/* Recent Swaps */}
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700/50">
+        <h2 className="text-xl font-bold text-white mb-4">Recent Swaps</h2>
+        <div className="space-y-3">
+          {swapHistory.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">No swaps yet</div>
+          ) : (
+            swapHistory.map((swap) => (
+              <div
+                key={swap.id}
+                className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-5 h-5 text-[#D2A44C]" />
+                    <div>
+                      <div className="text-white font-medium">
+                        {swap.from_amount} {swap.from_asset} → {swap.to_amount} {swap.to_asset}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(swap.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-green-400">Completed</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }

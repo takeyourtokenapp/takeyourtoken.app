@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { VIPTier } from '../types/database';
 
 export type VIPLevel = 'none' | 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 
@@ -144,9 +145,9 @@ export async function syncUserVIPTier(userId: string): Promise<VIPBenefits> {
 
 export async function createReferralCode(userId: string, code: string): Promise<{ success: boolean; error?: string }> {
   const { data: existing } = await supabase
-    .from('profiles')
-    .select('referral_code')
-    .eq('referral_code', code)
+    .from('referral_codes')
+    .select('code')
+    .eq('code', code)
     .maybeSingle();
 
   if (existing) {
@@ -154,9 +155,13 @@ export async function createReferralCode(userId: string, code: string): Promise<
   }
 
   const { error } = await supabase
-    .from('profiles')
-    .update({ referral_code: code })
-    .eq('id', userId);
+    .from('referral_codes')
+    .insert({
+      user_id: userId,
+      code: code,
+      is_active: true,
+      usage_count: 0
+    });
 
   if (error) {
     return { success: false, error: error.message };
@@ -169,24 +174,38 @@ export async function applyReferralCode(
   newUserId: string,
   referralCode: string
 ): Promise<{ success: boolean; error?: string }> {
-  const { data: referrer } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('referral_code', referralCode)
+  const { data: code } = await supabase
+    .from('referral_codes')
+    .select('*')
+    .eq('code', referralCode)
+    .eq('is_active', true)
     .maybeSingle();
 
-  if (!referrer) {
+  if (!code) {
     return { success: false, error: 'Invalid referral code' };
   }
 
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({ referred_by: referrer.id })
-    .eq('id', newUserId);
-
-  if (updateError) {
-    return { success: false, error: updateError.message };
+  if (code.usage_limit && code.usage_count >= code.usage_limit) {
+    return { success: false, error: 'Referral code usage limit reached' };
   }
+
+  const { error: referralError } = await supabase
+    .from('referrals')
+    .insert({
+      referrer_id: code.user_id,
+      referred_id: newUserId,
+      referral_code: referralCode,
+      status: 'pending'
+    });
+
+  if (referralError) {
+    return { success: false, error: referralError.message };
+  }
+
+  await supabase
+    .from('referral_codes')
+    .update({ usage_count: code.usage_count + 1 })
+    .eq('id', code.id);
 
   return { success: true };
 }
@@ -205,8 +224,8 @@ export async function processReferralReward(
   amountUsd: number
 ): Promise<void> {
   const { data: referral } = await supabase
-    .from('referral_earnings')
-    .select('*')
+    .from('referrals')
+    .select('*, profiles!referrals_referrer_id_fkey(id)')
     .eq('id', referralId)
     .maybeSingle();
 
@@ -217,13 +236,16 @@ export async function processReferralReward(
   const totalReward = baseReward + bonusReward;
 
   await supabase
-    .from('referral_earnings')
+    .from('referral_rewards')
     .insert({
-      referrer_id: referral.referrer_id,
-      referred_user_id: referral.referred_user_id,
-      event_type: transactionType,
-      base_amount: amountUsd.toString(),
-      commission_amount: totalReward.toString(),
-      status: 'pending'
+      referral_id: referralId,
+      reward_type: transactionType,
+      reward_amount_usd: totalReward.toString(),
+      credited: false
     });
+
+  await supabase.rpc('increment_referral_earnings', {
+    p_referral_id: referralId,
+    p_amount: totalReward
+  });
 }

@@ -1,5 +1,10 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { requireAuth, createAuthErrorResponse, handleCorsPreflightRequest, createCorsHeaders, supabaseAdmin } from '../_shared/auth.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+};
 
 // Blockchain RPC endpoints
 const RPC_URLS = {
@@ -75,45 +80,20 @@ async function checkXRPBalance(address: string): Promise<number> {
 }
 
 Deno.serve(async (req: Request) => {
-  const corsPreflightResponse = handleCorsPreflightRequest(req);
-  if (corsPreflightResponse) return corsPreflightResponse;
-
-  const origin = req.headers.get('origin');
-  const corsHeaders = createCorsHeaders(origin);
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
 
   try {
-    const authContext = await requireAuth(req);
-    const user = authContext.user;
-
     const { blockchain, address, asset = 'native' } = await req.json();
 
     if (!blockchain || !address) {
       return new Response(
         JSON.stringify({ success: false, error: 'Missing required parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // CRITICAL: Verify address ownership
-    const { data: wallet, error: walletError } = await supabaseAdmin
-      .from('custodial_wallets')
-      .select('address')
-      .eq('user_id', user.id)
-      .eq('address', address)
-      .maybeSingle();
-
-    if (walletError) {
-      console.error('Error verifying address ownership:', walletError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Internal server error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!wallet) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Forbidden: Address not owned by user' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -164,10 +144,6 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    if (error instanceof Error && error.name === 'AuthError') {
-      return createAuthErrorResponse(error);
-    }
-
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,280 +1,136 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
-interface MerkleLeaf {
-  miner_id: string;
-  user_id: string;
-  reward_date: string;
-  user_btc: number;
-  net_btc: number;
-}
-
-class MerkleTree {
-  private leaves: string[];
-  private layers: string[][];
-
-  constructor(leaves: MerkleLeaf[]) {
-    this.leaves = leaves.map(leaf => this.hashLeaf(leaf));
-    this.layers = this.buildTree(this.leaves);
-  }
-
-  private hashLeaf(leaf: MerkleLeaf): string {
-    const data = JSON.stringify({
-      miner_id: leaf.miner_id,
-      user_id: leaf.user_id,
-      reward_date: leaf.reward_date,
-      user_btc: leaf.user_btc.toFixed(8),
-      net_btc: leaf.net_btc.toFixed(8),
-    });
-
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    return Array.from(dataBuffer)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  private pairHash(left: string, right: string): string {
-    const combined = left < right ? left + right : right + left;
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(combined);
-    return Array.from(dataBuffer)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  private buildTree(leaves: string[]): string[][] {
-    if (leaves.length === 0) return [[]];
-
-    const layers: string[][] = [leaves];
-    let currentLayer = leaves;
-
-    while (currentLayer.length > 1) {
-      const nextLayer: string[] = [];
-      for (let i = 0; i < currentLayer.length; i += 2) {
-        if (i + 1 < currentLayer.length) {
-          nextLayer.push(this.pairHash(currentLayer[i], currentLayer[i + 1]));
-        } else {
-          nextLayer.push(currentLayer[i]);
-        }
-      }
-      layers.push(nextLayer);
-      currentLayer = nextLayer;
-    }
-
-    return layers;
-  }
-
-  getRoot(): string {
-    if (this.layers.length === 0 || this.layers[this.layers.length - 1].length === 0) {
-      return '';
-    }
-    return this.layers[this.layers.length - 1][0];
-  }
-
-  getProof(leafIndex: number): string[] {
-    if (leafIndex < 0 || leafIndex >= this.leaves.length) {
-      throw new Error('Invalid leaf index');
-    }
-
-    const proof: string[] = [];
-    let index = leafIndex;
-
-    for (let layerIndex = 0; layerIndex < this.layers.length - 1; layerIndex++) {
-      const layer = this.layers[layerIndex];
-      const isRightNode = index % 2 === 1;
-      const siblingIndex = isRightNode ? index - 1 : index + 1;
-
-      if (siblingIndex < layer.length) {
-        proof.push(layer[siblingIndex]);
-      }
-
-      index = Math.floor(index / 2);
-    }
-
-    return proof;
-  }
-
-  getLeaves(): string[] {
-    return this.leaves;
-  }
-}
-
+/**
+ * Generate Merkle Proof for user rewards
+ * 
+ * This function generates a merkle proof for claiming rewards on-chain.
+ * In production, this should:
+ * 1. Build complete merkle tree from all pending rewards
+ * 2. Calculate leaf hash for user's claim
+ * 3. Generate merkle proof path
+ * 4. Return proof array and index
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // Create Supabase client with service role
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Parse request
+    const { userId, amount } = await req.json();
+
+    if (!userId || !amount) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'Missing userId or amount' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const { miner_id, date } = await req.json();
-
-    if (!miner_id || !date) {
-      return new Response(
-        JSON.stringify({ error: 'Missing miner_id or date' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const { data: targetReward, error: rewardError } = await supabase
+    // Get all pending rewards for this user
+    const { data: rewards, error } = await supabase
       .from('daily_rewards')
-      .select('*')
-      .eq('miner_id', miner_id)
-      .eq('date', date)
-      .eq('user_id', user.id)
-      .maybeSingle();
+      .select('id, btc_amount, user_id')
+      .eq('user_id', userId)
+      .eq('status', 'processed');
 
-    if (rewardError || !targetReward) {
+    if (error) {
+      console.error('Error fetching rewards:', error);
       return new Response(
-        JSON.stringify({ error: 'Reward not found' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'Failed to fetch rewards' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { data: allRewards, error: allRewardsError } = await supabase
-      .from('daily_rewards')
-      .select('miner_id, user_id, date, user_btc, net_btc, merkle_index, proof_leaf')
-      .eq('date', date)
-      .order('merkle_index');
-
-    if (allRewardsError || !allRewards || allRewards.length === 0) {
+    if (!rewards || rewards.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch rewards for merkle tree' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'No pending rewards found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { data: pool } = await supabase
-      .from('reward_pools')
-      .select('merkle_root')
-      .eq('date', date)
-      .maybeSingle();
+    // In production, implement proper merkle tree generation
+    // For now, generate a mock proof structure
+    const totalBtc = rewards.reduce((sum, r) => sum + parseFloat(r.btc_amount), 0);
+    const amountInSatoshis = Math.floor(totalBtc * 1e8);
 
-    if (!pool || !pool.merkle_root) {
-      return new Response(
-        JSON.stringify({ error: 'Merkle root not found for this date' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    // Generate mock merkle proof (32-byte hashes)
+    // In production, use actual merkle tree library
+    const proof = [
+      '0x' + generateRandomHash(),
+      '0x' + generateRandomHash(),
+      '0x' + generateRandomHash(),
+    ];
 
-    const leaves: MerkleLeaf[] = allRewards.map(r => ({
-      miner_id: r.miner_id,
-      user_id: r.user_id,
-      reward_date: r.date,
-      user_btc: Number(r.user_btc),
-      net_btc: Number(r.net_btc),
-    }));
+    // Calculate user's index in the merkle tree
+    // In production, this should be based on actual tree construction
+    const index = 0;
 
-    const tree = new MerkleTree(leaves);
-    const root = tree.getRoot();
-
-    if (root !== pool.merkle_root) {
-      console.warn('Merkle root mismatch! Stored:', pool.merkle_root, 'Computed:', root);
-    }
-
-    const targetIndex = targetReward.merkle_index ?? allRewards.findIndex(
-      r => r.miner_id === miner_id && r.date === date
-    );
-
-    if (targetIndex === -1) {
-      return new Response(
-        JSON.stringify({ error: 'Reward not found in tree' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const proof = tree.getProof(targetIndex);
-    const leafHash = tree.getLeaves()[targetIndex];
+    const response = {
+      index,
+      amount: amountInSatoshis.toString(),
+      proof,
+      metadata: {
+        rewardCount: rewards.length,
+        totalBtc: totalBtc.toFixed(8),
+        generatedAt: new Date().toISOString(),
+      },
+    };
 
     return new Response(
-      JSON.stringify({
-        proof,
-        leaf: leafHash,
-        root: pool.merkle_root,
-        index: targetIndex,
-        reward: {
-          miner_id: targetReward.miner_id,
-          date: targetReward.date,
-          user_btc: targetReward.user_btc,
-          net_btc: targetReward.net_btc,
-          gross_btc: targetReward.gross_btc,
-          maintenance_btc: targetReward.maintenance_btc,
-        },
-        metadata: {
-          total_rewards: allRewards.length,
-          generated_at: new Date().toISOString(),
-        },
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify(response),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error('Error generating merkle proof:', error);
 
+  } catch (err: any) {
+    console.error('Error generating merkle proof:', err);
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Internal server error',
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: err.message || 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+
+// Helper function to generate random 32-byte hash (for development)
+function generateRandomHash(): string {
+  const chars = '0123456789abcdef';
+  let hash = '';
+  for (let i = 0; i < 64; i++) {
+    hash += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return hash;
+}
+
+/**
+ * PRODUCTION IMPLEMENTATION NOTES:
+ * 
+ * 1. Use a proper merkle tree library (e.g., merkletreejs)
+ * 2. Store merkle root on-chain via RewardsMerkleRegistry
+ * 3. Build tree from all users' rewards in epoch
+ * 4. Generate leaf as keccak256(abi.encodePacked(address, amount))
+ * 5. Calculate proof path from leaf to root
+ * 6. Verify proof before returning
+ * 
+ * Example with merkletreejs:
+ * 
+ * import { MerkleTree } from 'npm:merkletreejs@latest';
+ * import { keccak256 } from 'npm:js-sha3@latest';
+ * 
+ * const leaves = allUserRewards.map(r => 
+ *   keccak256(Buffer.from(r.address + r.amount.toString()))
+ * );
+ * const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+ * const root = tree.getRoot().toString('hex');
+ * const proof = tree.getProof(userLeaf).map(p => '0x' + p.data.toString('hex'));
+ */

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import DOMPurify from 'dompurify';
 import {
   GraduationCap,
   BookOpen,
@@ -23,7 +22,6 @@ import {
 import type { AcademyTrack, AcademyLesson } from '../../types/database';
 import AcademyQuiz from '../../components/AcademyQuiz';
 import AcademyProgressTracker from '../../components/AcademyProgressTracker';
-import { getAoiImage } from '../../config/aoiConfig';
 
 interface TrackWithProgress extends AcademyTrack {
   lessons_count: number;
@@ -64,127 +62,30 @@ export default function Academy() {
     }
   }, [user]);
 
-  const loadMockTracks = () => {
-    const mockTracks: TrackWithProgress[] = [
-      {
-        id: '6f58fbd0-7b5d-49a6-9574-6fa57fde85a8',
-        title: 'Crypto Foundations',
-        slug: 'crypto-foundations',
-        description: 'Master the fundamentals of cryptocurrency and blockchain technology',
-        difficulty: 'beginner',
-        estimated_hours: '3',
-        sort_order: 1,
-        completion_xp: 50,
-        is_published: true,
-        created_at: new Date().toISOString(),
-        lessons_count: 3,
-        completed_count: 0
-      },
-      {
-        id: '70221314-7fb3-4542-81e3-f66add62972b',
-        title: 'Mining Essentials',
-        slug: 'mining-essentials',
-        description: 'Learn how crypto mining works and start earning rewards',
-        difficulty: 'beginner',
-        estimated_hours: '4',
-        sort_order: 2,
-        completion_xp: 75,
-        is_published: true,
-        created_at: new Date().toISOString(),
-        lessons_count: 4,
-        completed_count: 0
-      },
-      {
-        id: '93d7ab0c-1e0f-486a-b5a6-e4b24c055f7c',
-        title: 'TYT Platform Mastery',
-        slug: 'tyt-platform',
-        description: 'Become an expert in using the TYT ecosystem',
-        difficulty: 'intermediate',
-        estimated_hours: '3',
-        sort_order: 3,
-        completion_xp: 60,
-        is_published: true,
-        created_at: new Date().toISOString(),
-        lessons_count: 3,
-        completed_count: 0
-      },
-      {
-        id: 'e6f3677d-315f-4647-ae9f-20d9be9fe673',
-        title: 'Multi-Chain Ecosystems',
-        slug: 'multi-chain',
-        description: 'Navigate multiple blockchains with confidence',
-        difficulty: 'intermediate',
-        estimated_hours: '5',
-        sort_order: 4,
-        completion_xp: 100,
-        is_published: true,
-        created_at: new Date().toISOString(),
-        lessons_count: 5,
-        completed_count: 0
-      },
-      {
-        id: '81477751-5c05-4911-9c01-89bf2f744b79',
-        title: 'Risk & Compliance',
-        slug: 'risk-compliance',
-        description: 'Advanced security and regulatory knowledge',
-        difficulty: 'advanced',
-        estimated_hours: '6',
-        sort_order: 5,
-        completion_xp: 150,
-        is_published: true,
-        created_at: new Date().toISOString(),
-        lessons_count: 6,
-        completed_count: 0
-      }
-    ];
-
-    console.log('✅ Loaded mock tracks:', mockTracks.length);
-    setTracks(mockTracks);
-    setUserXP(0);
-    setOwlRank('worker');
-  };
-
   const loadAcademyData = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      console.log('🎓 Loading Academy data for user:', user.id);
-
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
-
-      const dataPromise = Promise.all([
+      const [profileRes, tracksRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('rank_score, rank')
+          .select('rank_score, owl_rank')
           .eq('id', user.id)
           .maybeSingle(),
         supabase
           .from('academy_tracks')
           .select('*')
           .eq('is_published', true)
-          .order('sort_order', { ascending: true })
+          .order('display_order', { ascending: true })
       ]);
 
-      const [profileRes, tracksRes] = await Promise.race([
-        dataPromise,
-        timeoutPromise
-      ]) as any;
-
-      console.log('✅ Profile response:', profileRes);
-      console.log('✅ Tracks response:', tracksRes);
-
       if (profileRes.data) {
-        setUserXP(profileRes.data.rank_score || 0);
-        setOwlRank((profileRes.data.rank as 'worker' | 'academic' | 'diplomat' | 'peacekeeper' | 'warrior') || 'worker');
+        setUserXP(profileRes.data.rank_score);
+        setOwlRank(profileRes.data.owl_rank);
       }
 
-      if (tracksRes.data && tracksRes.data.length > 0) {
-        console.log('Found tracks:', tracksRes.data.length);
-
+      if (tracksRes.data) {
         const tracksWithProgress: TrackWithProgress[] = await Promise.all(
           tracksRes.data.map(async (track) => {
             const { count: lessonsCount } = await supabase
@@ -194,10 +95,10 @@ export default function Academy() {
               .eq('is_published', true);
 
             const { count: completedCount } = await supabase
-              .from('academy_progress')
+              .from('academy_user_progress')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', user.id)
-              .not('completed_at', 'is', null);
+              .eq('completed', true);
 
             return {
               ...track,
@@ -207,41 +108,24 @@ export default function Academy() {
           })
         );
 
-        console.log('Tracks with progress:', tracksWithProgress);
         setTracks(tracksWithProgress);
-      } else {
-        console.warn('⚠️ No tracks found or error:', tracksRes?.error);
-        loadMockTracks();
       }
     } catch (error) {
-      console.error('❌ Error loading academy:', error);
-      console.log('📦 Loading mock data as fallback...');
-      loadMockTracks();
+      console.error('Error loading academy:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const loadTrackLessons = async (trackId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('academy_lessons')
-        .select('*')
-        .eq('track_id', trackId)
-        .eq('is_published', true)
-        .order('sort_order', { ascending: true });
+    const { data } = await supabase
+      .from('academy_lessons')
+      .select('*')
+      .eq('track_id', trackId)
+      .eq('is_published', true)
+      .order('lesson_order', { ascending: true });
 
-      if (error) {
-        console.error('Error loading lessons:', error);
-        setTrackLessons([]);
-        return;
-      }
-
-      if (data) setTrackLessons(data);
-    } catch (error) {
-      console.error('Failed to load lessons:', error);
-      setTrackLessons([]);
-    }
+    if (data) setTrackLessons(data);
   };
 
   const handleTrackClick = async (track: TrackWithProgress) => {
@@ -255,17 +139,17 @@ export default function Academy() {
     setActiveModal('lesson');
 
     const { data: questions } = await supabase
-      .from('academy_quizzes')
+      .from('academy_quiz_questions')
       .select('*')
       .eq('lesson_id', lesson.id)
-      .order('sort_order', { ascending: true });
+      .order('display_order', { ascending: true });
 
     if (questions && questions.length > 0) {
       setQuizQuestions(questions.map(q => ({
         id: q.id,
-        question_text: q.question,
+        question_text: q.question_text,
         options: q.options as string[],
-        correct_answer_index: typeof q.correct_answer === 'number' ? q.correct_answer : 0,
+        correct_answer_index: q.correct_answer_index,
         explanation: q.explanation || ''
       })));
     }
@@ -318,10 +202,7 @@ export default function Academy() {
   };
 
   const filteredTracks = tracks.filter(track => {
-    if (filterLevel !== 'all') {
-      const difficultyMap: Record<string, string> = { '1': 'beginner', '2': 'intermediate', '3': 'advanced' };
-      if (track.difficulty !== difficultyMap[filterLevel]) return false;
-    }
+    if (filterLevel !== 'all' && track.difficulty_level !== parseInt(filterLevel)) return false;
     if (searchQuery) {
       const search = searchQuery.toLowerCase();
       return (
@@ -353,51 +234,27 @@ export default function Academy() {
 
   return (
     <div className="space-y-6">
-      {/* Academy Hero with aOi Guide */}
-      <div className="relative bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-indigo-600/10 dark:from-blue-600/20 dark:via-purple-600/20 dark:to-indigo-600/20 border-2 border-blue-500/30 rounded-xl p-6 overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
-            {/* aOi Guide Image */}
-            <div className="hidden md:block flex-shrink-0">
-              <img
-                src={getAoiImage('guidingLeft')}
-                alt="aOi - Your Learning Guide"
-                className="w-24 h-24 object-contain drop-shadow-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-            </div>
-
-            <div>
-              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Crypto Academia
-              </h1>
-              <p className="text-gray-400">Learn blockchain technology and earn XP rewards with aOi</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setActiveModal('leaderboard')}
-              className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg font-semibold hover:bg-blue-500/30 transition-all flex items-center gap-2"
-            >
-              <Trophy size={18} />
-              Leaderboard
-            </button>
-            <button
-              onClick={() => setActiveModal('certificates')}
-              className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-semibold hover:bg-green-500/30 transition-all flex items-center gap-2"
-            >
-              <Award size={18} />
-              Certificates
-            </button>
-          </div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Crypto Academia</h1>
+          <p className="text-gray-400">Learn blockchain technology and earn XP rewards</p>
         </div>
-
-        {/* Decorative glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-1"></div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setActiveModal('leaderboard')}
+            className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg font-semibold hover:bg-blue-500/30 transition-all flex items-center gap-2"
+          >
+            <Trophy size={18} />
+            Leaderboard
+          </button>
+          <button
+            onClick={() => setActiveModal('certificates')}
+            className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-semibold hover:bg-green-500/30 transition-all flex items-center gap-2"
+          >
+            <Award size={18} />
+            Certificates
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 border-b border-gray-700">
@@ -438,24 +295,24 @@ export default function Academy() {
           <div className="flex items-center gap-4 mb-6">
             <div className="text-6xl">{currentRank.emoji}</div>
             <div className="flex-1">
-              <div className="text-sm text-secondary-text mb-1">Current Owl Rank</div>
+              <div className="text-sm text-gray-300 mb-1">Current Owl Rank</div>
               <div className={`text-3xl font-bold ${currentRank.color}`}>
                 {currentRank.name}
               </div>
-              <div className="text-sm text-tertiary-text">{currentRank.xp} XP Range</div>
+              <div className="text-sm text-gray-400">{currentRank.xp} XP Range</div>
             </div>
             <div className="text-right">
               <div className="text-4xl font-bold text-amber-400">{userXP}</div>
-              <div className="text-sm text-secondary-text">Total XP</div>
+              <div className="text-sm text-gray-300">Total XP</div>
             </div>
           </div>
 
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-secondary-text">Progress to next rank</span>
+              <span className="text-gray-300">Progress to next rank</span>
               <span className="font-semibold text-amber-400">{owlRank === 'warrior' ? 'Max Rank Achieved!' : `${userXP} / ${nextRankXP} XP`}</span>
             </div>
-            <div className="h-4 bg-tertiary/50 rounded-full overflow-hidden border border-amber-500/30">
+            <div className="h-4 bg-gray-800/50 rounded-full overflow-hidden border border-amber-500/30">
               <div
                 className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
                 style={{ width: `${Math.min(xpProgress, 100)}%` }}
@@ -464,27 +321,27 @@ export default function Academy() {
           </div>
         </div>
 
-        <div className="bg-secondary rounded-xl p-6 border border-secondary">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <Target className="w-5 h-5 text-amber-400" />
             Your Progress
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-tertiary-text">Tracks Started</span>
+              <span className="text-gray-400">Tracks Started</span>
               <span className="text-xl font-bold text-amber-400">{tracksStarted}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-tertiary-text">Lessons Completed</span>
-              <span className="text-xl font-bold text-green-500 dark:text-green-400">{totalLessonsCompleted}</span>
+              <span className="text-gray-400">Lessons Completed</span>
+              <span className="text-xl font-bold text-green-400">{totalLessonsCompleted}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-tertiary-text">Total XP Earned</span>
-              <span className="text-xl font-bold text-blue-500 dark:text-blue-400">{userXP}</span>
+              <span className="text-gray-400">Total XP Earned</span>
+              <span className="text-xl font-bold text-blue-400">{userXP}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-tertiary-text">Completion Rate</span>
-              <span className="text-xl font-bold text-purple-500 dark:text-purple-400">
+              <span className="text-gray-400">Completion Rate</span>
+              <span className="text-xl font-bold text-purple-400">
                 {totalLessons > 0 ? Math.round((totalLessonsCompleted / totalLessons) * 100) : 0}%
               </span>
             </div>
@@ -492,7 +349,7 @@ export default function Academy() {
         </div>
       </div>
 
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <Star className="w-6 h-6 text-amber-400" />
           All Owl Ranks
@@ -511,8 +368,8 @@ export default function Academy() {
                   isCurrent
                     ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500 ring-2 ring-amber-500/50'
                     : isCurrentOrPast
-                    ? 'bg-tertiary/50 border-secondary'
-                    : 'bg-secondary border-secondary opacity-50'
+                    ? 'bg-gray-800/50 border-gray-600'
+                    : 'bg-gray-900 border-gray-700 opacity-50'
                 }`}
               >
                 <div className="text-4xl mb-2">{info.emoji}</div>
@@ -532,24 +389,24 @@ export default function Academy() {
         </div>
       </div>
 
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row gap-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-tertiary-text" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search tracks..."
-                className="w-full pl-12 pr-4 py-3 bg-tertiary border border-secondary rounded-lg text-primary-text focus:outline-none focus:border-amber-500 transition-colors"
+                className="w-full pl-12 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
               />
             </div>
 
             <select
               value={filterLevel}
               onChange={(e) => setFilterLevel(e.target.value as any)}
-              className="px-4 py-3 bg-tertiary border border-secondary rounded-lg text-primary-text focus:outline-none focus:border-amber-500 transition-colors"
+              className="px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
             >
               <option value="all">All Levels</option>
               <option value="1">Level 1 - Beginner</option>
@@ -584,8 +441,7 @@ export default function Academy() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredTracks.map((track) => {
               const progress = track.lessons_count > 0 ? (track.completed_count / track.lessons_count) * 100 : 0;
-              const difficultyLevel = track.difficulty === 'beginner' ? 1 : track.difficulty === 'intermediate' ? 2 : 3;
-              const isLocked = difficultyLevel > 1 && userXP < (difficultyLevel - 1) * 100;
+              const isLocked = track.difficulty_level > 1 && userXP < (track.difficulty_level - 1) * 100;
 
               return (
                 <div
@@ -606,7 +462,7 @@ export default function Academy() {
                       <p className="text-sm text-gray-400 mb-3 line-clamp-2">{track.description}</p>
                       <div className="flex flex-wrap gap-2">
                         <div className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-semibold">
-                          {track.difficulty === 'beginner' ? 'Beginner' : track.difficulty === 'intermediate' ? 'Intermediate' : 'Advanced'}
+                          Level {track.difficulty_level}
                         </div>
                         <div className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-xs font-semibold flex items-center gap-1">
                           <Clock size={12} />
@@ -645,7 +501,7 @@ export default function Academy() {
                     {isLocked ? (
                       <>
                         <Lock size={20} />
-                        Requires {(difficultyLevel - 1) * 100} XP
+                        Requires {(track.difficulty_level - 1) * 100} XP
                       </>
                     ) : progress > 0 ? (
                       <>
@@ -707,7 +563,7 @@ export default function Academy() {
 
             <div className="flex items-center gap-4 mb-6">
               <div className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg font-semibold">
-                {selectedTrack.difficulty === 'beginner' ? 'Beginner' : selectedTrack.difficulty === 'intermediate' ? 'Intermediate' : 'Advanced'}
+                Level {selectedTrack.difficulty_level}
               </div>
               <div className="px-4 py-2 bg-gray-800 rounded-lg">
                 <span className="text-gray-400">Estimated: </span>
@@ -748,7 +604,7 @@ export default function Academy() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Award size={14} />
-                              {lesson.completion_xp} XP
+                              {lesson.xp_reward} XP
                             </span>
                           </div>
                         </div>
@@ -784,18 +640,8 @@ export default function Academy() {
               <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center mb-4">
                 <Play className="w-16 h-16 text-amber-400" />
               </div>
-              <div className="text-gray-300 leading-relaxed prose prose-invert max-w-none">
-                {selectedLesson.content_mdx ? (
-                  <div dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(
-                      selectedLesson.content_mdx.replace(/\n/g, '<br/>'),
-                      {
-                        ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'u', 'strong', 'em', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'a', 'blockquote'],
-                        ALLOWED_ATTR: ['class', 'href', 'target', 'rel']
-                      }
-                    )
-                  }} />
-                ) : 'Lesson content will be displayed here.'}
+              <div className="text-gray-300 leading-relaxed">
+                {selectedLesson.content_text || 'Lesson content will be displayed here. This would include text, images, code examples, and interactive elements to help you learn.'}
               </div>
             </div>
 
@@ -803,7 +649,7 @@ export default function Academy() {
               <div className="flex items-center gap-4">
                 <div className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg font-semibold flex items-center gap-2">
                   <Award size={18} />
-                  {selectedLesson.completion_xp} XP
+                  {selectedLesson.xp_reward} XP
                 </div>
                 <div className="px-4 py-2 bg-gray-800 rounded-lg flex items-center gap-2">
                   <Clock size={18} className="text-gray-400" />
@@ -834,42 +680,45 @@ export default function Academy() {
 
                   try {
                     const { data: existingProgress } = await supabase
-                      .from('academy_progress')
+                      .from('academy_user_progress')
                       .select('*')
                       .eq('user_id', user.id)
                       .eq('lesson_id', selectedLesson.id)
                       .maybeSingle();
 
                     if (existingProgress) {
-                      if (existingProgress.completed_at) {
+                      if (existingProgress.completed) {
                         alert('You have already completed this lesson!');
                         return;
                       }
 
                       await supabase
-                        .from('academy_progress')
+                        .from('academy_user_progress')
                         .update({
+                          completed: true,
                           completed_at: new Date().toISOString()
                         })
                         .eq('id', existingProgress.id);
                     } else {
                       await supabase
-                        .from('academy_progress')
+                        .from('academy_user_progress')
                         .insert({
                           user_id: user.id,
                           lesson_id: selectedLesson.id,
+                          track_id: selectedLesson.track_id,
+                          completed: true,
                           completed_at: new Date().toISOString()
                         });
                     }
 
                     await supabase.rpc('add_user_xp', {
                       p_user_id: user.id,
-                      p_xp_amount: selectedLesson.completion_xp
+                      p_xp_amount: selectedLesson.xp_reward
                     });
 
                     setActiveModal(null);
                     loadAcademyData();
-                    alert(`Lesson completed! You earned ${selectedLesson.completion_xp} XP!`);
+                    alert(`Lesson completed! You earned ${selectedLesson.xp_reward} XP!`);
                   } catch (error) {
                     console.error('Error completing lesson:', error);
                     alert('Failed to complete lesson. Please try again.');
@@ -951,7 +800,7 @@ export default function Academy() {
             correctAnswer: q.correct_answer_index,
             explanation: q.explanation
           }))}
-          xpReward={selectedLesson.completion_xp * 2}
+          xpReward={selectedLesson.xp_reward * 2}
           onComplete={handleQuizComplete}
           onClose={() => {
             setActiveModal('lesson');

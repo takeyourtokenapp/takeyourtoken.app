@@ -125,14 +125,14 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
 
   return (
     <div className="space-y-6">
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
             <ArrowDownLeft className="text-green-400" size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-primary-text">Deposit Funds</h2>
-            <p className="text-sm text-tertiary-text">Send crypto to your wallet address</p>
+            <h2 className="text-2xl font-bold text-white">Deposit Funds</h2>
+            <p className="text-sm text-gray-400">Send crypto to your wallet address</p>
           </div>
         </div>
 
@@ -145,7 +145,7 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
 
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Select Asset
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -160,7 +160,7 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
                   className={`p-3 rounded-lg font-medium transition-all ${
                     selectedAssetState === asset
                       ? 'bg-gold-500/20 text-gold-400 border border-gold-500/50'
-                      : 'bg-tertiary text-secondary-text hover:bg-secondary'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
                   {asset}
@@ -170,12 +170,12 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-secondary-text mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Select Network
             </label>
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="animate-spin text-tertiary-text" size={24} />
+                <Loader2 className="animate-spin text-gray-400" size={24} />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
@@ -188,7 +188,7 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
                       className={`p-4 rounded-lg text-left transition-all ${
                         selectedNetwork === network.network_code
                           ? 'bg-green-500/20 text-green-400 border border-green-500/50'
-                          : 'bg-tertiary text-secondary-text hover:bg-secondary'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }`}
                     >
                       <div className="font-semibold">{network.network_name}</div>
@@ -203,9 +203,9 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
         </div>
 
         {currentAddress ? (
-          <div className="bg-tertiary/50 rounded-xl p-6 border border-secondary">
+          <div className="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-primary-text">Your {currentNetwork?.network_name} Address</h3>
+              <h3 className="font-semibold text-white">Your {currentNetwork?.network_name} Address</h3>
               {currentAddress.is_verified && (
                 <span className="flex items-center gap-1 text-xs text-green-400">
                   <CheckCircle2 size={14} />
@@ -214,20 +214,20 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
               )}
             </div>
 
-            <div className="bg-primary rounded-lg p-4 mb-4">
+            <div className="bg-gray-900 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between gap-4">
-                <div className="font-mono text-sm text-primary-text break-all flex-1">
+                <div className="font-mono text-sm text-white break-all flex-1">
                   {currentAddress.address}
                 </div>
                 <button
                   onClick={() => handleCopyAddress(currentAddress.address)}
-                  className="flex-shrink-0 p-2 rounded-lg bg-tertiary hover:bg-secondary transition-colors"
+                  className="flex-shrink-0 p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
                   title="Copy address"
                 >
                   {copiedAddress === currentAddress.address ? (
                     <CheckCircle2 className="text-green-400" size={18} />
                   ) : (
-                    <Copy className="text-secondary-text" size={18} />
+                    <Copy className="text-gray-300" size={18} />
                   )}
                 </button>
               </div>
@@ -236,13 +236,13 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
             <div className="flex gap-2">
               <button
                 onClick={() => window.open(getExplorerAddressUrl(selectedNetwork, currentAddress.address), '_blank')}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-tertiary hover:bg-secondary text-primary-text transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
               >
                 <ExternalLink size={16} />
                 View on Explorer
               </button>
               <button
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-tertiary hover:bg-secondary text-primary-text transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
               >
                 <QrCode size={16} />
                 Show QR Code
@@ -268,19 +268,19 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
                 </>
               )}
             </button>
-            <p className="text-sm text-tertiary-text mt-4">
+            <p className="text-sm text-gray-400 mt-4">
               Click to generate a unique deposit address for this network
             </p>
           </div>
         )}
 
         {feePreview && (
-          <div className="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+          <div className="mt-6 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <Info className="text-blue-400 flex-shrink-0 mt-0.5" size={20} />
               <div className="flex-1 text-sm">
-                <div className="font-semibold text-blue-400 dark:text-blue-300 mb-2">Fee Structure (10% total)</div>
-                <div className="space-y-1 text-secondary-text">
+                <div className="font-semibold text-blue-300 mb-2">Fee Structure (10% total)</div>
+                <div className="space-y-1 text-blue-200">
                   <div className="flex justify-between">
                     <span>Protocol (60%):</span>
                     <span className="font-mono">{feePreview.protocol_fee || 0} {selectedAssetState}</span>
@@ -293,9 +293,9 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
                     <span>Academy (10%):</span>
                     <span className="font-mono">{feePreview.academy_fee || 0} {selectedAssetState}</span>
                   </div>
-                  <div className="flex justify-between border-t border-secondary pt-2 mt-2 font-semibold">
+                  <div className="flex justify-between border-t border-blue-500/30 pt-2 mt-2 font-semibold">
                     <span>You receive:</span>
-                    <span className="font-mono text-green-500 dark:text-green-400">{feePreview.net_amount || 0} {selectedAssetState}</span>
+                    <span className="font-mono text-green-400">{feePreview.net_amount || 0} {selectedAssetState}</span>
                   </div>
                 </div>
               </div>
@@ -303,11 +303,11 @@ export default function WalletDeposit({ selectedAsset, onSuccess }: WalletDeposi
           </div>
         )}
 
-        <div className="mt-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+        <div className="mt-6 bg-amber-900/20 border border-amber-500/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" size={20} />
-            <div className="text-sm text-secondary-text">
-              <div className="font-semibold mb-2 text-primary-text">Important Notes:</div>
+            <AlertCircle className="text-amber-400 flex-shrink-0 mt-0.5" size={20} />
+            <div className="text-sm text-amber-200">
+              <div className="font-semibold mb-2">Important Notes:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>Only send {selectedAssetState} to this address</li>
                 <li>Sending other assets may result in permanent loss</li>

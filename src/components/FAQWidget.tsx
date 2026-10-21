@@ -75,23 +75,23 @@ export default function FAQWidget({
   };
 
   return (
-    <div className={`tyt-card ${compact ? 'p-4' : 'p-6'}`}>
+    <div className={`bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl ${compact ? 'p-4' : 'p-6'}`}>
       <div className="flex items-center gap-3 mb-4">
-        <HelpCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-        <h3 className={`font-bold tyt-text-primary ${compact ? 'text-lg' : 'text-2xl'}`}>
+        <HelpCircle className="w-6 h-6 text-blue-400" />
+        <h3 className={`font-bold text-white ${compact ? 'text-lg' : 'text-2xl'}`}>
           Frequently Asked Questions
         </h3>
       </div>
 
       {showSearch && (
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 tyt-text-tertiary" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
             placeholder="Search questions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="tyt-input pl-10"
+            className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
         </div>
       )}
@@ -102,25 +102,25 @@ export default function FAQWidget({
           return (
             <div
               key={item.id}
-              className="tyt-card-flat overflow-hidden transition-all hover:shadow-md"
+              className="bg-gray-900/50 border border-gray-700 rounded-lg overflow-hidden transition-all hover:border-gray-600"
             >
               <button
                 onClick={() => toggleItem(item.id)}
-                className="w-full px-4 py-4 flex items-center justify-between text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="w-full px-4 py-4 flex items-center justify-between text-left transition-colors hover:bg-gray-800/50"
               >
-                <span className={`font-semibold tyt-text-primary ${compact ? 'text-sm' : 'text-base'}`}>
+                <span className={`font-semibold text-white ${compact ? 'text-sm' : 'text-base'}`}>
                   {item.question}
                 </span>
                 {isOpen ? (
-                  <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 ml-3" />
+                  <ChevronUp className="w-5 h-5 text-blue-400 flex-shrink-0 ml-3" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 tyt-text-tertiary flex-shrink-0 ml-3" />
+                  <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 ml-3" />
                 )}
               </button>
 
               {isOpen && (
-                <div className="px-4 pb-4 pt-2 border-t tyt-divider">
-                  <p className={`tyt-text-secondary leading-relaxed ${compact ? 'text-sm' : 'text-base'}`}>
+                <div className="px-4 pb-4 pt-2 border-t border-gray-700">
+                  <p className={`text-gray-300 leading-relaxed ${compact ? 'text-sm' : 'text-base'}`}>
                     {item.answer}
                   </p>
                 </div>
@@ -132,14 +132,14 @@ export default function FAQWidget({
 
       {filteredItems.length === 0 && (
         <div className="py-12 text-center">
-          <HelpCircle className="w-12 h-12 tyt-text-muted mx-auto mb-3" />
-          <p className="tyt-text-tertiary">No questions found matching your search.</p>
+          <HelpCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400">No questions found matching your search.</p>
         </div>
       )}
 
       {!compact && (
-        <div className="mt-6 pt-6 border-t tyt-divider text-center">
-          <p className="tyt-text-tertiary mb-3">Still have questions?</p>
+        <div className="mt-6 pt-6 border-t border-gray-700 text-center">
+          <p className="text-gray-400 mb-3">Still have questions?</p>
           <a
             href="/help"
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"

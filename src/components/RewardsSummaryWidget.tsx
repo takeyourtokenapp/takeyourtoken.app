@@ -12,7 +12,6 @@ import {
   Gift
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { AoiExplainButton } from './AoiExplainButton';
 
 interface RewardsSummary {
   today: number;
@@ -90,9 +89,9 @@ export default function RewardsSummaryWidget() {
 
   if (loading) {
     return (
-      <div className="bg-secondary rounded-xl border border-secondary p-6">
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700 p-6">
         <div className="flex items-center justify-center h-48">
-          <RefreshCw className="w-6 h-6 text-green-500 dark:text-green-400 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
         </div>
       </div>
     );
@@ -100,14 +99,14 @@ export default function RewardsSummaryWidget() {
 
   if (!summary) {
     return (
-      <div className="bg-secondary rounded-xl border border-secondary p-6">
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-green-500/10 rounded-lg">
-            <DollarSign className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <DollarSign className="w-5 h-5 text-green-400" />
           </div>
-          <h3 className="font-semibold text-primary-text">Rewards Summary</h3>
+          <h3 className="font-semibold">Rewards Summary</h3>
         </div>
-        <div className="flex flex-col items-center justify-center py-8 text-tertiary-text">
+        <div className="flex flex-col items-center justify-center py-8 text-gray-400">
           <Coins className="w-12 h-12 mb-3 opacity-50" />
           <p className="text-center">No rewards data yet</p>
         </div>
@@ -118,22 +117,22 @@ export default function RewardsSummaryWidget() {
   const maxReward = Math.max(...summary.rewardHistory.map(r => r.amount), 0.00000001);
 
   return (
-    <div className="bg-secondary rounded-xl border border-secondary p-6">
+    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-green-500/10 rounded-lg">
-            <TrendingUp className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <TrendingUp className="w-5 h-5 text-green-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-primary-text">Rewards Summary</h3>
-            <p className="text-xs text-tertiary-text">Mining earnings overview</p>
+            <h3 className="font-semibold">Rewards Summary</h3>
+            <p className="text-xs text-gray-400">Mining earnings overview</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setViewMode('btc')}
             className={`px-2 py-1 text-xs rounded ${
-              viewMode === 'btc' ? 'bg-amber-500/20 text-amber-400' : 'text-tertiary-text hover:text-primary-text'
+              viewMode === 'btc' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-400 hover:text-white'
             }`}
           >
             BTC
@@ -141,7 +140,7 @@ export default function RewardsSummaryWidget() {
           <button
             onClick={() => setViewMode('usd')}
             className={`px-2 py-1 text-xs rounded ${
-              viewMode === 'usd' ? 'bg-green-500/20 text-green-500 dark:text-green-400' : 'text-tertiary-text hover:text-primary-text'
+              viewMode === 'usd' ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-white'
             }`}
           >
             USD
@@ -151,34 +150,28 @@ export default function RewardsSummaryWidget() {
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20 p-3">
-          <div className="flex items-center gap-1 text-xs text-tertiary-text mb-1">
+          <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
             <Clock className="w-3 h-3" />
             Today
-            <AoiExplainButton
-              subjectType="reward_calculation"
-              contextData={{ amount: summary.today, period: 'today' }}
-              variant="icon"
-              size="sm"
-            />
           </div>
-          <div className="font-bold text-green-500 dark:text-green-400">{formatValue(summary.today)}</div>
+          <div className="font-bold text-green-400">{formatValue(summary.today)}</div>
         </div>
-        <div className="bg-tertiary/50 rounded-lg p-3">
-          <div className="flex items-center gap-1 text-xs text-tertiary-text mb-1">
+        <div className="bg-gray-800/50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
             <Calendar className="w-3 h-3" />
             This Week
           </div>
-          <div className="font-bold text-primary-text">{formatValue(summary.thisWeek)}</div>
+          <div className="font-bold">{formatValue(summary.thisWeek)}</div>
         </div>
-        <div className="bg-tertiary/50 rounded-lg p-3">
-          <div className="flex items-center gap-1 text-xs text-tertiary-text mb-1">
+        <div className="bg-gray-800/50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
             <Calendar className="w-3 h-3" />
             This Month
           </div>
-          <div className="font-bold text-primary-text">{formatValue(summary.thisMonth)}</div>
+          <div className="font-bold">{formatValue(summary.thisMonth)}</div>
         </div>
         <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/20 p-3">
-          <div className="flex items-center gap-1 text-xs text-tertiary-text mb-1">
+          <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
             <Gift className="w-3 h-3" />
             All Time
           </div>
@@ -188,8 +181,8 @@ export default function RewardsSummaryWidget() {
 
       <div className="mb-6">
         <div className="flex items-center justify-between text-sm mb-3">
-          <span className="text-tertiary-text">7-Day Trend</span>
-          <span className="text-green-500 dark:text-green-400 flex items-center gap-1">
+          <span className="text-gray-400">7-Day Trend</span>
+          <span className="text-green-400 flex items-center gap-1">
             <ArrowUpRight className="w-3 h-3" />
             Stable
           </span>
@@ -207,7 +200,7 @@ export default function RewardsSummaryWidget() {
             );
           })}
         </div>
-        <div className="flex justify-between text-xs text-tertiary-text mt-1">
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
           <span>7d ago</span>
           <span>Today</span>
         </div>
@@ -216,20 +209,12 @@ export default function RewardsSummaryWidget() {
       <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-tertiary-text mb-1 flex items-center gap-2">
-              30-Day Projection
-              <AoiExplainButton
-                subjectType="reward_calculation"
-                contextData={{ amount: summary.projected30Days, period: '30-day projection' }}
-                variant="icon"
-                size="sm"
-              />
-            </div>
-            <div className="text-xl font-bold text-green-500 dark:text-green-400">{formatValue(summary.projected30Days)}</div>
+            <div className="text-sm text-gray-400 mb-1">30-Day Projection</div>
+            <div className="text-xl font-bold text-green-400">{formatValue(summary.projected30Days)}</div>
           </div>
           <Link
             to="/app/rewards"
-            className="px-3 py-2 bg-green-500/20 text-green-500 dark:text-green-400 rounded-lg text-sm font-medium hover:bg-green-500/30 transition-all flex items-center gap-1"
+            className="px-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-medium hover:bg-green-500/30 transition-all flex items-center gap-1"
           >
             View Details
             <ChevronRight className="w-4 h-4" />

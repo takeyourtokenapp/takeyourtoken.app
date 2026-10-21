@@ -63,11 +63,8 @@ contract CharityVault is AccessControl, ReentrancyGuard {
     error InsufficientBalance(address token, uint256 requested, uint256 available);
     error ZeroAmount();
     error TransferFailed();
-    error ZeroAddress();
 
     constructor(address treasury) {
-        if (treasury == address(0)) revert ZeroAddress();
-
         _grantRole(DEFAULT_ADMIN_ROLE, treasury);
         _grantRole(TREASURY_ROLE, treasury);
     }

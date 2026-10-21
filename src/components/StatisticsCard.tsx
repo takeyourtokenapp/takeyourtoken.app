@@ -24,34 +24,34 @@ export default function StatisticsCard({
 }: StatisticsCardProps) {
   const colorClasses = {
     blue: {
-      bg: 'bg-blue-100 dark:bg-blue-900/30',
-      border: 'border-blue-300 dark:border-blue-700',
-      text: 'text-blue-600 dark:text-blue-400',
-      glow: 'hover:shadow-blue-500/20'
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/50',
+      text: 'text-blue-400',
+      glow: 'shadow-blue-500/20'
     },
     green: {
-      bg: 'bg-green-100 dark:bg-green-900/30',
-      border: 'border-green-300 dark:border-green-700',
-      text: 'text-green-600 dark:text-green-400',
-      glow: 'hover:shadow-green-500/20'
+      bg: 'bg-green-500/10',
+      border: 'border-green-500/50',
+      text: 'text-green-400',
+      glow: 'shadow-green-500/20'
     },
     amber: {
-      bg: 'bg-amber-100 dark:bg-amber-900/30',
-      border: 'border-amber-300 dark:border-amber-700',
-      text: 'text-amber-600 dark:text-amber-400',
-      glow: 'hover:shadow-amber-500/20'
+      bg: 'bg-amber-500/10',
+      border: 'border-amber-500/50',
+      text: 'text-amber-400',
+      glow: 'shadow-amber-500/20'
     },
     purple: {
-      bg: 'bg-purple-100 dark:bg-purple-900/30',
-      border: 'border-purple-300 dark:border-purple-700',
-      text: 'text-purple-600 dark:text-purple-400',
-      glow: 'hover:shadow-purple-500/20'
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/50',
+      text: 'text-purple-400',
+      glow: 'shadow-purple-500/20'
     },
     red: {
-      bg: 'bg-red-100 dark:bg-red-900/30',
-      border: 'border-red-300 dark:border-red-700',
-      text: 'text-red-600 dark:text-red-400',
-      glow: 'hover:shadow-red-500/20'
+      bg: 'bg-red-500/10',
+      border: 'border-red-500/50',
+      text: 'text-red-400',
+      glow: 'shadow-red-500/20'
     }
   };
 
@@ -99,23 +99,23 @@ export default function StatisticsCard({
 
   if (loading) {
     return (
-      <div className={`tyt-card ${sizes.container} animate-pulse`}>
+      <div className={`bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl ${sizes.container} animate-pulse`}>
         <div className="flex items-center justify-between mb-4">
-          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-24"></div>
-          <div className={`${sizes.iconBox} bg-gray-300 dark:bg-gray-700 rounded-lg`}></div>
+          <div className="h-4 bg-gray-700 rounded w-24"></div>
+          <div className={`${sizes.iconBox} bg-gray-700 rounded-lg ${colors.bg}`}></div>
         </div>
-        <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-32 mb-2"></div>
-        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-20"></div>
+        <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
+        <div className="h-3 bg-gray-700 rounded w-20"></div>
       </div>
     );
   }
 
   return (
     <div
-      className={`tyt-card-stats ${sizes.container} hover:border-${color}-500 dark:hover:border-${color}-500 transition-all duration-300 hover:scale-105`}
+      className={`bg-gradient-to-br from-gray-800 to-gray-900 border ${colors.border} rounded-xl ${sizes.container} hover:shadow-lg ${colors.glow} transition-all duration-300 hover:scale-105`}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className={`tyt-text-tertiary ${sizes.label} font-medium uppercase tracking-wide`}>
+        <div className={`text-gray-400 ${sizes.label} font-medium uppercase tracking-wide`}>
           {label}
         </div>
         <div className={`${sizes.iconBox} ${colors.bg} rounded-lg border ${colors.border}`}>
@@ -123,7 +123,7 @@ export default function StatisticsCard({
         </div>
       </div>
 
-      <div className={`${sizes.value} font-bold tyt-text-primary mb-2`}>
+      <div className={`${sizes.value} font-bold text-white mb-2`}>
         {value}
       </div>
 
@@ -136,7 +136,7 @@ export default function StatisticsCard({
             </span>
           )}
           {changeLabel && (
-            <span className={`${sizes.change} tyt-text-muted`}>
+            <span className={`${sizes.change} text-gray-500`}>
               {changeLabel}
             </span>
           )}

@@ -46,9 +46,9 @@ const ACCESS_LEVEL_HIERARCHY = {
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -207,9 +207,9 @@ export async function getUserAccessibleFeatures(userId: string): Promise<string[
 export async function updateUserLastActive(userId: string): Promise<void> {
   try {
     await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update({ last_active: new Date().toISOString() })
-      .eq('id', userId);
+      .eq('user_id', userId);
   } catch (error) {
     console.error('Update last active error:', error);
   }
@@ -225,11 +225,11 @@ export async function addRewardPoints(
     if (!profile) return;
 
     await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update({
         reward_points: profile.reward_points + points
       })
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     await supabase
       .from('user_feature_access')
@@ -255,11 +255,11 @@ export async function updateTradingVolume(
     const newVolume = profile.total_trading_volume + volumeUSD;
 
     await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update({
         total_trading_volume: newVolume
       })
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     if (newVolume >= 100000 && profile.access_level === 'standard') {
       await upgradeAccessLevel(userId, 'premium', 'Trading volume milestone');
@@ -278,11 +278,11 @@ export async function upgradeAccessLevel(
 ): Promise<void> {
   try {
     await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update({
         access_level: newLevel
       })
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     await supabase
       .from('user_feature_access')
@@ -317,12 +317,12 @@ export async function submitKYCDocuments(
     }
 
     await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update({
         kyc_status: 'pending',
         kyc_submitted_at: new Date().toISOString()
       })
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     return true;
   } catch (error) {
@@ -354,7 +354,7 @@ export async function getKYCStatus(userId: string): Promise<{
     const { data: documents } = await supabase
       .from('kyc_documents')
       .select('document_type, status, uploaded_at, rejection_reason')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .order('uploaded_at', { ascending: false });
 
     return {

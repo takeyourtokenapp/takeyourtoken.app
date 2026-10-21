@@ -74,7 +74,7 @@ export async function stakeTokens(
   poolId: string,
   amount: number,
   walletAddress: string,
-  _provider: any
+  provider: any
 ): Promise<{ success: boolean; stakeId?: string; error?: string }> {
   try {
     const { data: pool, error: poolError } = await supabase
@@ -137,7 +137,7 @@ export async function stakeTokens(
 export async function unstakeTokens(
   userId: string,
   stakeId: string,
-  _provider: any
+  provider: any
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { data: stake, error: fetchError } = await supabase

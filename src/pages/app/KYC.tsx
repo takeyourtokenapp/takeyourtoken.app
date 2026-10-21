@@ -197,15 +197,15 @@ export default function KYC() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-primary-text mb-2">KYC Verification</h1>
-        <p className="text-secondary-text">Complete your identity verification to unlock all features</p>
+        <h1 className="text-3xl font-bold text-white mb-2">KYC Verification</h1>
+        <p className="text-gray-400">Complete your identity verification to unlock all features</p>
       </div>
 
       {/* KYC Status Card */}
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700/50">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-primary-text mb-2">Verification Status</h2>
+            <h2 className="text-xl font-bold text-white mb-2">Verification Status</h2>
             <div className={`text-lg font-medium ${getKYCStatusColor(kyc?.status || 'not_submitted')}`}>
               {kyc?.status === 'approved' && 'Verified ✓'}
               {kyc?.status === 'pending_review' && 'Pending Review'}
@@ -213,7 +213,7 @@ export default function KYC() {
               {!kyc?.status && 'Not Started'}
             </div>
             {kyc?.tier && (
-              <div className="text-sm text-secondary-text mt-1">KYC Tier: {kyc.tier}</div>
+              <div className="text-sm text-gray-400 mt-1">KYC Tier: {kyc.tier}</div>
             )}
           </div>
           {kyc?.status === 'approved' && (
@@ -234,8 +234,8 @@ export default function KYC() {
 
       {/* Upload Instructions */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-        <h3 className="text-primary-text font-medium mb-2">Important Guidelines</h3>
-        <ul className="space-y-1 text-sm text-secondary-text">
+        <h3 className="text-white font-medium mb-2">Important Guidelines</h3>
+        <ul className="space-y-1 text-sm text-gray-300">
           <li>• All documents must be clear and readable</li>
           <li>• Accepted formats: JPG, PNG, PDF</li>
           <li>• Maximum file size: 10MB</li>
@@ -255,15 +255,15 @@ export default function KYC() {
             return (
               <div
                 key={type}
-                className="bg-secondary rounded-xl p-6 border border-secondary"
+                className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700/50"
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-3 bg-accent/20 rounded-lg">
-                    <Icon className="w-6 h-6 text-accent" />
+                  <div className="p-3 bg-[#D2A44C]/20 rounded-lg">
+                    <Icon className="w-6 h-6 text-[#D2A44C]" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-primary-text mb-1">{info.label}</h3>
-                    <p className="text-sm text-secondary-text mb-4">{info.description}</p>
+                    <h3 className="text-lg font-bold text-white mb-1">{info.label}</h3>
+                    <p className="text-sm text-gray-400 mb-4">{info.description}</p>
 
                     {docStatus ? (
                       <div className="space-y-3">
@@ -271,7 +271,7 @@ export default function KYC() {
                         {docStatus.rejection_reason && (
                           <p className="text-sm text-red-400">{docStatus.rejection_reason}</p>
                         )}
-                        <div className="text-xs text-secondary-text/70">
+                        <div className="text-xs text-gray-500">
                           Uploaded: {new Date(docStatus.uploaded_at).toLocaleDateString()}
                         </div>
                         {docStatus.status === 'rejected' && (
@@ -283,7 +283,7 @@ export default function KYC() {
                               className="hidden"
                               disabled={isUploading}
                             />
-                            <span className="inline-block px-4 py-2 bg-accent text-white rounded-lg cursor-pointer hover:bg-accent/90 transition-all text-sm">
+                            <span className="inline-block px-4 py-2 bg-[#D2A44C] text-white rounded-lg cursor-pointer hover:bg-yellow-600 transition-all text-sm">
                               Re-upload
                             </span>
                           </label>
@@ -301,8 +301,8 @@ export default function KYC() {
                         <span
                           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm ${
                             isUploading
-                              ? 'bg-tertiary text-secondary-text cursor-not-allowed'
-                              : 'bg-accent text-white cursor-pointer hover:bg-accent/90'
+                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                              : 'bg-[#D2A44C] text-white cursor-pointer hover:bg-yellow-600'
                           }`}
                         >
                           {isUploading ? (
@@ -328,28 +328,28 @@ export default function KYC() {
       </div>
 
       {/* KYC Benefits */}
-      <div className="bg-secondary rounded-xl p-6 border border-secondary">
-        <h2 className="text-xl font-bold text-primary-text mb-4">Verification Benefits</h2>
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700/50">
+        <h2 className="text-xl font-bold text-white mb-4">Verification Benefits</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-tertiary rounded-lg border border-secondary">
-            <div className="text-accent font-bold mb-2">Tier 1</div>
-            <div className="text-sm text-secondary-text space-y-1">
+          <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+            <div className="text-[#D2A44C] font-bold mb-2">Tier 1</div>
+            <div className="text-sm text-gray-300 space-y-1">
               <div>• $1,000/day withdrawal</div>
               <div>• Basic trading</div>
               <div>• Standard features</div>
             </div>
           </div>
-          <div className="p-4 bg-tertiary rounded-lg border border-secondary">
-            <div className="text-accent font-bold mb-2">Tier 2</div>
-            <div className="text-sm text-secondary-text space-y-1">
+          <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+            <div className="text-[#D2A44C] font-bold mb-2">Tier 2</div>
+            <div className="text-sm text-gray-300 space-y-1">
               <div>• $10,000/day withdrawal</div>
               <div>• Advanced trading</div>
               <div>• Priority support</div>
             </div>
           </div>
-          <div className="p-4 bg-tertiary rounded-lg border border-secondary">
-            <div className="text-accent font-bold mb-2">Tier 3</div>
-            <div className="text-sm text-secondary-text space-y-1">
+          <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+            <div className="text-[#D2A44C] font-bold mb-2">Tier 3</div>
+            <div className="text-sm text-gray-300 space-y-1">
               <div>• Unlimited withdrawals</div>
               <div>• VIP features</div>
               <div>• Dedicated manager</div>
